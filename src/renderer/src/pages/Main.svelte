@@ -1,0 +1,45 @@
+<script lang="ts">
+  import { writable } from 'svelte/store'
+  import NavBar from '../components/Sidebar.svelte'
+
+  // Import all page components
+  import Dashboard from './Dashboard.svelte'
+  import MakeAssessment from './MakeAssessment.svelte'
+  import ManageAssessments from './ManageAssessments.svelte'
+  import ManageUsers from './ManageUsers.svelte'
+  import Settings from './Settings.svelte'
+
+  // Define page configuration
+  const pages = {
+    Dashboard,
+    MakeAssessment,
+    ManageAssessments,
+    ManageUsers,
+    Settings
+  }
+
+  // Create a store for current page
+  const currentPage = writable('Dashboard')
+
+  // Navigation function
+  function navigateTo(page: string) {
+    if (Object.keys(pages).includes(page)) {
+      currentPage.set(page)
+    } else {
+      console.error(`Page ${page} not found`)
+    }
+  }
+</script>
+
+<main>
+  <NavBar {navigateTo} />
+
+  <!-- Dynamic component rendering -->
+  <svelte:component this={pages[$currentPage]} />
+</main>
+
+<style>
+  main {
+    display: flex;
+  }
+</style>
