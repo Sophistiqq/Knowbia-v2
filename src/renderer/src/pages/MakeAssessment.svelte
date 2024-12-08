@@ -105,8 +105,6 @@
   }
 </script>
 
-<!-- Button that shows the answers and questions for testing in console -->
-<button on:click={() => console.table(assessment)}>Show</button>
 <main>
   <nav class="nav">
     <h1>Create an Assessment</h1>
@@ -161,7 +159,7 @@
       </div>
     </div>
     {#if preview}
-      <div class="preview-container {open}" transition:slide={{ axis: 'x' }}>
+      <div class="preview-container {open}">
         <h3>Preview</h3>
         <AssessmentPreview {assessment} />
       </div>
@@ -189,6 +187,8 @@
     padding-top: 1rem;
     justify-content: space-between;
     align-items: flex-start;
+    margin-inline: auto;
+    min-width: 80%;
   }
   .separator {
     height: 2px;

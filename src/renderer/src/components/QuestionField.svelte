@@ -7,62 +7,93 @@
   } from 'svelte-google-materialdesign-icons'
   import { slide } from 'svelte/transition'
 
-  export let question: {
+  // Define an enum for question types to make the code more type-safe
+  type QuestionType =
+    | 'short_answer'
+    | 'paragraph'
+    | 'multiple_choice'
+    | 'checkbox'
+    | 'dropdown'
+    | 'file_upload'
+    | 'date'
+    | 'time'
+    | 'radio'
+
+  // Define a type for the question to improve type checking
+  type Question = {
     id: string
     question: string
-    type: string
+    type: QuestionType
     options?: string[]
     required?: boolean
     correctAnswer?: string | string[]
   }
 
-  export let questionTypes = [
+  // Centralized question type definitions
+  export const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
     { value: 'short_answer', label: 'Short Answer' },
+    { value: 'paragraph', label: 'Paragraph' },
     { value: 'multiple_choice', label: 'Multiple Choice' },
     { value: 'checkbox', label: 'Checkbox' },
     { value: 'dropdown', label: 'Dropdown' },
-    { value: 'radio', label: 'Radio' },
     { value: 'file_upload', label: 'File Upload' },
-    { value: 'linear_scale', label: 'Linear Scale' },
     { value: 'date', label: 'Date' },
     { value: 'time', label: 'Time' },
-    { value: 'paragraph', label: 'Paragraph' }
+    { value: 'radio', label: 'Radio' }
   ]
 
+  // Props with improved type annotations
+  export let question: Question
   export let onDelete: () => void = () => {}
-  export let onDuplicate: (q: typeof question) => void = () => {}
+  export let onDuplicate: (q: Question) => void = () => {}
   export let onAdd: () => void = () => {}
 
+  // Reactive state management
   let isOpen = false
-  let correctAnswer: string | string[] = question.type === 'checkbox' ? [] : ''
+  let localCorrectAnswer: string | string[] = initializeCorrectAnswer()
 
+  // Initialize correct answer based on question type
+  function initializeCorrectAnswer(): string | string[] {
+    const multiSelectTypes = ['checkbox', 'multiple_choice']
+    return multiSelectTypes.includes(question.type) ? [] : ''
+  }
+
+  // Reset question properties when type changes
+  function resetQuestionProperties(newType: QuestionType) {
+    // Reset options for types that require them
+    const typesWithOptions = ['multiple_choice', 'checkbox', 'dropdown', 'radio']
+
+    if (typesWithOptions.includes(newType)) {
+      question.options = ['']
+    } else {
+      question.options = undefined
+    }
+
+    // Reset correct answer
+    localCorrectAnswer = initializeCorrectAnswer()
+    question.correctAnswer = localCorrectAnswer
+  }
+
+  // Toggle dropdown visibility
   function toggleDropdown() {
     isOpen = !isOpen
   }
 
-  function selectType(type: string) {
-    // Reset options based on type
-    if (['multiple_choice', 'checkbox', 'dropdown', 'radio'].includes(type)) {
-      question.options = ['']
-      correctAnswer = type === 'checkbox' ? [] : ''
-    } else {
-      question.options = undefined
-      correctAnswer = ''
-    }
-
+  // Select and reset question type
+  function selectType(type: QuestionType) {
     question.type = type
-    isOpen = false
+    resetQuestionProperties(type)
   }
 
   // Close dropdown when clicking outside
   function handleClickOutside(event: MouseEvent) {
-    const dropdown = event.target as HTMLElement
-    if (!dropdown.closest('.custom-select')) {
+    const target = event.target as HTMLElement
+    if (!target.closest('.custom-select')) {
       isOpen = false
     }
   }
 
-  // Add a new option for multiple choice, checkbox, dropdown, radio
+  // Add a new option for question types with options
   function addOption() {
     if (!question.options) return
     question.options = [...question.options, '']
@@ -74,23 +105,27 @@
     question.options = question.options.filter((_, i) => i !== index)
   }
 
-  // Handle correct answer change
+  // Handle correct answer changes for different question types
   function handleCorrectAnswerChange(index: number) {
     if (!question.options) return
 
-    if (question.type === 'radio') {
-      correctAnswer = question.options[index] || ''
-    } else if (question.type === 'checkbox') {
-      const currentCorrectAnswers = correctAnswer as string[]
-      const optionText = question.options[index] || ''
+    switch (question.type) {
+      case 'radio':
+      case 'multiple_choice':
+        localCorrectAnswer = question.options[index] || ''
+        break
+      case 'checkbox':
+        const currentCorrectAnswers = localCorrectAnswer as string[]
+        const optionText = question.options[index] || ''
 
-      if (currentCorrectAnswers.includes(optionText)) {
-        correctAnswer = currentCorrectAnswers.filter((ans) => ans !== optionText)
-      } else {
-        correctAnswer = [...currentCorrectAnswers, optionText]
-      }
+        localCorrectAnswer = currentCorrectAnswers.includes(optionText)
+          ? currentCorrectAnswers.filter((ans) => ans !== optionText)
+          : [...currentCorrectAnswers, optionText]
+        break
     }
-    question.correctAnswer = correctAnswer
+
+    // Update the question's correct answer
+    question.correctAnswer = localCorrectAnswer
   }
 </script>
 
@@ -98,20 +133,27 @@
 
 <main transition:slide={{ axis: 'y' }}>
   <div class="question-container">
+    <!-- Question Header -->
     <div class="question-header">
       <h4>Question</h4>
-      <input type="text" class="question" bind:value={question.question} placeholder="Question" />
+      <input
+        type="text"
+        class="question"
+        bind:value={question.question}
+        placeholder="Enter your question"
+      />
     </div>
 
+    <!-- Question Type Dropdown -->
     <div class="question-body">
       <button class="custom-select" on:click|stopPropagation={toggleDropdown}>
         <div class="selected-option">
-          {questionTypes.find((t) => t.value === question.type)?.label || 'Select Type'}
+          {QUESTION_TYPES.find((t) => t.value === question.type)?.label || 'Select Type'}
           <Arrow_drop_down />
         </div>
         {#if isOpen}
           <div class="options-list">
-            {#each questionTypes as type}
+            {#each QUESTION_TYPES as type}
               <button
                 class="option"
                 class:selected={question.type === type.value}
@@ -125,23 +167,25 @@
       </button>
     </div>
 
+    <!-- Dynamic Answers Section -->
     <div class="answers">
-      {#if question.type === 'multiple_choice' || question.type === 'checkbox' || question.type === 'dropdown' || question.type === 'radio'}
+      <!-- Options for types with multiple choices -->
+      {#if ['multiple_choice', 'checkbox', 'dropdown', 'radio'].includes(question.type)}
         {#if question.options}
           {#each question.options as option, index}
             <div class="option-input-group">
               <!-- Correct answer toggle -->
-              {#if question.type === 'radio'}
+              {#if question.type === 'multiple_choice' || question.type === 'radio' || question.type === 'dropdown'}
                 <input
                   type="radio"
                   name={`correct-${question.id}`}
-                  checked={option === correctAnswer}
+                  checked={option === localCorrectAnswer}
                   on:change={() => handleCorrectAnswerChange(index)}
                 />
               {:else if question.type === 'checkbox'}
                 <input
                   type="checkbox"
-                  checked={Array.isArray(correctAnswer) && correctAnswer.includes(option)}
+                  checked={Array.isArray(localCorrectAnswer) && localCorrectAnswer.includes(option)}
                   on:change={() => handleCorrectAnswerChange(index)}
                 />
               {/if}
@@ -149,7 +193,7 @@
               <!-- Option input -->
               <input type="text" bind:value={question.options[index]} placeholder="Option" />
 
-              <!-- Remove option button (if more than one option) -->
+              <!-- Remove option button -->
               {#if (question.options?.length || 0) > 1}
                 <button on:click={() => removeOption(index)} class="remove-option"> ✖ </button>
               {/if}
@@ -161,13 +205,13 @@
         {/if}
       {/if}
 
-      <!-- Inputs for other question types -->
-      {#if question.type === 'short_answer'}
-        <input type="text" bind:value={question.correctAnswer} placeholder="Correct Answer" />
+      <!-- Type-specific inputs -->
+      {#if question.type === 'time'}
+        <input type="time" bind:value={question.correctAnswer} />
       {/if}
 
-      {#if question.type === 'linear_scale'}
-        <input type="number" bind:value={question.correctAnswer} placeholder="Correct Answer" />
+      {#if question.type === 'short_answer'}
+        <input type="text" bind:value={question.correctAnswer} placeholder="Correct Answer" />
       {/if}
 
       {#if question.type === 'date'}
@@ -184,6 +228,7 @@
     </div>
   </div>
 
+  <!-- Question Controls -->
   <div class="question-controls">
     <button on:click={() => onDuplicate(question)} title="Duplicate">
       <Content_copy />
@@ -283,6 +328,7 @@
     flex-direction: column;
     gap: 1rem;
   }
+  textarea,
   input {
     border: var(--border);
     outline: none;
@@ -297,8 +343,7 @@
     gap: 1rem;
     margin-bottom: 0.5rem;
     & input[type='radio'],
-    & input[type='checkbox'],
-    & input[type='file'] {
+    & input[type='checkbox'] {
       width: fit-content;
     }
   }

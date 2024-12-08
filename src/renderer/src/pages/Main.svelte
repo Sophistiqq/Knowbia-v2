@@ -33,7 +33,6 @@
 
 <main>
   <NavBar {navigateTo} />
-
   <!-- Dynamic component rendering -->
   <svelte:component this={pages[$currentPage]} />
 </main>
