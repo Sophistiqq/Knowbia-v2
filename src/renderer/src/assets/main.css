@@ -1,7 +1,7 @@
 :root {
   --text: rgba(223, 227, 242, 1);
   --background: rgba(11, 14, 28, .4);
-  --background-solid: rgba(11, 14, 28, 1);
+  --background-solid: rgba(21, 24, 28, .9);
   --primary: rgba(136, 156, 239, 1);
   --secondary: rgba(188, 21, 21, 1);
   --accent: rgba(232, 81, 26, 1);

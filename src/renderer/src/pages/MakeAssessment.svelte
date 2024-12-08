@@ -1,29 +1,38 @@
 <script lang="ts">
   import { Restart_alt, Remove_red_eye, Save } from 'svelte-google-materialdesign-icons'
   import { toast } from '../utils/Toast'
-  import { fly } from 'svelte/transition'
+  import { fly, slide } from 'svelte/transition'
+  import AssessmentPreview from '../components/AssessmentPreview.svelte'
+  import QuestionField from '../components/QuestionField.svelte'
 
   type Assessment = {
-    id: number
     title: string
     description: string
     time_limit: number
     questions: any[]
     answers: any[]
   }
+  type Question = {
+    id: string
+    question: string
+    type: string
+    options?: string[]
+    correctAnswer?: string
+    required?: boolean
+  }
+
   let assessment: Assessment = {
-    id: 0,
     title: 'Untitled Assessment',
-    description: 'No description',
+    description: '',
     time_limit: 60,
     questions: [],
     answers: []
   }
+
   function resetAssessment() {
     assessment = {
-      id: 0,
       title: 'Untitled Assessment',
-      description: 'No description',
+      description: '',
       time_limit: 60,
       questions: [],
       answers: []
@@ -31,11 +40,13 @@
     resetConfirmation = false
     toast('Assessment reset', '2000', 'success')
   }
+
   let resetConfirmation = false
   let preview = true
   $: open = preview ? 'open' : ''
+
   // if the screen is too small show a toast
-  $: if (window.innerWidth < 768) {
+  $: if (window.innerWidth < 800) {
     preview = false
     toast('Preview is disabled on small screens', '2000', 'info')
   }
@@ -48,14 +59,60 @@
       descriptionTextarea.style.height = `${descriptionTextarea.scrollHeight}px`
     }
   }
+
+  async function saveAssessment() {
+    try {
+      console.table(assessment)
+      const response = await fetch('http://localhost:3000/assessments/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(assessment)
+      })
+      const data = await response.json()
+      toast(data.message, '2000', data.status)
+    } catch (err) {
+      console.error(err)
+      toast('Failed to save assessment', '2000', 'error')
+    }
+  }
+  function addQuestion() {
+    assessment.questions = [
+      ...assessment.questions,
+      {
+        id: crypto.randomUUID(),
+        question: '',
+        type: 'short_answer',
+        required: false,
+        answers: []
+      }
+    ]
+  }
+
+  function duplicateQuestion(question: Question, index: number) {
+    const duplicatedQuestion = structuredClone(question)
+    duplicatedQuestion.id = crypto.randomUUID()
+    assessment.questions = [
+      ...assessment.questions.slice(0, index + 1),
+      duplicatedQuestion,
+      ...assessment.questions.slice(index + 1)
+    ]
+  }
+
+  function deleteQuestion(index: number) {
+    assessment.questions = assessment.questions.filter((_, i) => i !== index)
+  }
 </script>
 
+<!-- Button that shows the answers and questions for testing in console -->
+<button on:click={() => console.table(assessment)}>Show</button>
 <main>
   <nav class="nav">
     <h1>Create an Assessment</h1>
     <div class="button-group">
       <button><b>Distribute</b></button>
-      <button><Save variation="filled" /></button>
+      <button on:click={saveAssessment}><Save variation="filled" /></button>
       <button on:click={() => (resetConfirmation = !resetConfirmation)}
         ><Restart_alt variation="filled" /></button
       >
@@ -67,6 +124,7 @@
       >
     </div>
   </nav>
+
   <div class="container">
     <div class="assessment-header">
       <h3>Assessment Headers</h3>
@@ -84,18 +142,30 @@
           bind:value={assessment.time_limit}
         />
       </div>
-    </div>
 
-    <div class="preview-container {open}">
-      <h3>Preview</h3>
-      <div class="p-assessment-header">
-        <h3>{assessment.title}</h3>
-        <div class="separator"></div>
-        <p>{@html assessment.description.replace(/\n/g, '<br>')}</p>
-        <div class="separator"></div>
-        <p>Duration: {assessment.time_limit || 0} minutes</p>
+      <div class="separator"></div>
+      <h3>Questions</h3>
+      <div class="questions-container">
+        {#if assessment.questions.length === 0}
+          {addQuestion()}
+        {/if}
+
+        {#each assessment.questions as question, index (question.id)}
+          <QuestionField
+            bind:question
+            onAdd={addQuestion}
+            onDelete={() => deleteQuestion(index)}
+            onDuplicate={() => duplicateQuestion(question, index)}
+          />
+        {/each}
       </div>
     </div>
+    {#if preview}
+      <div class="preview-container {open}" transition:slide={{ axis: 'x' }}>
+        <h3>Preview</h3>
+        <AssessmentPreview {assessment} />
+      </div>
+    {/if}
   </div>
 </main>
 
@@ -233,39 +303,16 @@
     }
   }
 
-  .preview-container {
-    width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    transition: width 0.3s;
-    h3 {
-      margin-bottom: 0.5rem;
-    }
-    .p-assessment-header {
-      padding: 1rem;
-      border: var(--border);
-      border-radius: 5px;
-      background: var(--background);
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      h3 {
-        font-size: 1.2rem;
-        margin-bottom: 1rem;
-      }
-    }
-  }
   .open {
-    width: 100%;
+    width: 30rem;
   }
 
-  // if the screen is big, the preview should be the size of a mobile phone
-  @media (min-width: 768px) {
-    .open {
-      width: 30rem;
-    }
-  }
-  @media (max-width: 768px) {
+  @media (width < 768px) {
     .preview-container,
     .open {
+      white-space: nowrap;
+      overflow: hidden;
+      display: none;
       width: 0;
     }
   }
