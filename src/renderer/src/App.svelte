@@ -22,7 +22,7 @@
 
   async function checkSetup() {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       const status = localStorage.getItem('setup')
       if (status === 'done') {

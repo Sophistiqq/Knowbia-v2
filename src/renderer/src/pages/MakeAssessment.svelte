@@ -159,7 +159,7 @@
       </div>
     </div>
     {#if preview}
-      <div class="preview-container {open}">
+      <div class="preview-container {open}" transition:slide={{ axis: 'x' }}>
         <h3>Preview</h3>
         <AssessmentPreview {assessment} />
       </div>

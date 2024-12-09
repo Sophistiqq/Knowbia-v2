@@ -51,8 +51,8 @@
   })
 </script>
 
-{#if screenWidth > 768}
-  <nav class="nav {showMenu}">
+{#if screenWidth > 1080}
+  <nav class="nav {showMenu} icons-only">
     <div class="menu-header">
       <h3>Menu</h3>
       <p>Hello, {user.first_name}</p>
@@ -150,9 +150,9 @@
     width: 30rem;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1080px) {
     .nav-active {
-      width: 80px;
+      max-width: 70px;
       margin-top: 5rem;
     }
   }

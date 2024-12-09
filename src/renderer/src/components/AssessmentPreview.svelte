@@ -139,7 +139,7 @@
   .p-questions {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
   }
 
   .preview-question {
@@ -157,7 +157,6 @@
 
     .question-number {
       font-weight: bold;
-      margin-right: 0.5rem;
     }
 
     .required-marker {
