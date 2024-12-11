@@ -1,41 +1,38 @@
 <script lang="ts">
   import { slide } from 'svelte/transition'
 
-  // Define an enum for question types to make the code more type-safe
-  type QuestionType =
-    | 'short_answer'
-    | 'paragraph'
-    | 'multiple_choice'
-    | 'checkbox'
-    | 'dropdown'
-    | 'file_upload'
-    | 'date'
-    | 'time'
-    | 'radio'
-
   // Define a type for the question to improve type checking
   type Question = {
-    id: string
+    id: number
     question: string
-    type: QuestionType
+    type: 'multiple_choice' | 'short_answer' | 'true_false' | 'ranking' | 'essay' | 'linear_scale'
     options?: string[]
-    required?: boolean
-    allowOther?: boolean
-    correctAnswer?: string | string[]
+    correctAnswers?: any[]
+    required: boolean
+    points: number
+    shuffleOptions: boolean
+    category?: string
+    hint?: string
+    media?: string | null
+    showMediaUpload?: boolean
+    // Linear Scale specific properties
+    linearScaleStart?: number
+    linearScaleEnd?: number
+    linearScaleStep?: number
   }
   export let assessment: {
     title: string
     description: string
     time_limit: number
+    shuffleQuestions: boolean
     questions: Question[]
-    answers: any[]
   }
 </script>
 
 <div class="p-assessment-header">
   <h3>{assessment.title}</h3>
   <div class="separator"></div>
-  <p>{@html assessment.description.replace(/\n/g, '<br>')}</p>
+  <p>{@html assessment.description.replace(/\n/g, '<br>') || 'No Description'}</p>
   <div class="separator"></div>
   <p>Duration: {assessment.time_limit} minutes</p>
 </div>
@@ -47,7 +44,9 @@
     <div class="preview-question" transition:slide={{ axis: 'y' }}>
       <div class="question-header">
         <span class="question-number">{index + 1}.</span>
-        <span class="question-text">{question.question}</span>
+        <span class="question-text"
+          >{question.question !== '' ? question.question : 'Blank Question'}
+        </span>
         {#if question.required}
           <span class="required-marker">*</span>
         {/if}
@@ -56,9 +55,9 @@
       <div class="question-input">
         {#if question.type === 'short_answer'}
           <input type="text" placeholder="Your answer" class="preview-input" />
-        {:else if question.type === 'paragraph'}
+        {:else if question.type === 'essay'}
           <textarea placeholder="Your answer" class="preview-textarea"></textarea>
-        {:else if question.type === 'multiple_choice' || question.type === 'radio'}
+        {:else if question.type === 'multiple_choice'}
           {#each question.options || [] as option, optIndex}
             <div class="preview-option">
               <input
@@ -67,53 +66,29 @@
                 name="q{question.id}"
                 value={option}
               />
-              <label for="q{question.id}-option{optIndex}">{option}</label>
+              <label for="q{question.id}-option{optIndex}"
+                >{option !== '' ? option : `Option ${optIndex + 1}`}</label
+              >
             </div>
           {/each}
-          {#if question.allowOther}
+        {:else if question.type === 'true_false'}
+          <div class="preview-option">
+            <input type="radio" id="q{question.id}-true" name="q{question.id}" value="true" />
+            <label for="q{question.id}-true">True</label>
+          </div>
+          <div class="preview-option">
+            <input type="radio" id="q{question.id}-false" name="q{question.id}" value="false" />
+            <label for="q{question.id}-false">False</label>
+          </div>
+        {:else if question.type === 'ranking'}
+          {#each question.options || [] as _option, optIndex}
             <div class="preview-option">
-              <input
-                type="radio"
-                id="q{question.id}-option-other"
-                name="q{question.id}"
-                value="other"
-              />
-              <label for="q{question.id}-option-other">Other</label>
-              <input type="text" placeholder="Please specify" class="other-field" />
-            </div>
-          {/if}
-        {:else if question.type === 'checkbox'}
-          {#each question.options || [] as option, optIndex}
-            <div class="preview-option">
-              <input type="checkbox" id="q{question.id}-option{optIndex}" value={option} />
-              <label for="q{question.id}-option{optIndex}">{option}</label>
+              <span>{optIndex + 1}.</span>
+              <input type="text" placeholder="Option" class="preview-input" />
             </div>
           {/each}
-          {#if question.allowOther}
-            <div class="preview-option">
-              <input type="checkbox" id="q{question.id}-option-other" value="other" />
-              <label for="q{question.id}-option-other">Other</label>
-              <input type="text" placeholder="Please specify" class="other-field" />
-            </div>
-          {/if}
-        {:else if question.type === 'dropdown'}
-          <select class="preview-select">
-            {#each question.options || [] as option}
-              <option value={option}>{option}</option>
-            {/each}
-            {#if question.allowOther}
-              <option value="other">Other</option>
-            {/if}
-          </select>
-          {#if question.allowOther}
-            <input type="text" placeholder="Please specify" class="other-field" />
-          {/if}
-        {:else if question.type === 'date'}
-          <input type="date" class="preview-input" />
-        {:else if question.type === 'time'}
-          <input type="time" class="preview-input" />
-        {:else if question.type === 'file_upload'}
-          <input type="file" class="preview-file" />
+        {:else if question.type === 'linear_scale'}
+          <input type="range" min="0" max="10" step="1" />
         {/if}
       </div>
     </div>
@@ -133,7 +108,6 @@
     padding: 1rem;
     margin-top: 0.5rem;
     border: var(--border);
-    border-radius: 5px;
     background: var(--background);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 
@@ -149,7 +123,6 @@
   input {
     border: var(--border);
     outline: none;
-    border-radius: 0.2rem;
     padding: 0.75rem;
     width: 100%;
     background: var(--background);
@@ -170,7 +143,6 @@
 
   .preview-question {
     border: var(--border);
-    border-radius: 5px;
     padding: 1rem;
     background: var(--background);
   }
@@ -188,42 +160,6 @@
     .required-marker {
       color: red;
       margin-left: 0.25rem;
-    }
-  }
-
-  .other-field {
-    border: none;
-    padding-block: 0.5rem;
-    margin-top: 0.5rem;
-    background: transparent;
-    border-bottom: var(--border);
-  }
-
-  .question-input {
-    margin-top: 0.5rem;
-
-    .preview-input,
-    .preview-textarea,
-    .preview-select,
-    .preview-file {
-      width: 100%;
-      padding: 0.5rem;
-      border: var(--border);
-      border-radius: 5px;
-      margin-top: 0.5rem;
-    }
-
-    .preview-textarea {
-      min-height: 100px;
-    }
-
-    .preview-option {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.5rem;
-      input {
-        margin-right: 0.5rem;
-      }
     }
   }
 </style>

@@ -147,9 +147,8 @@
     }
   }
   .nav-active {
-    width: 20rem;
-    max-width: 20rem;
-    min-width: 20rem;
+    width: 30rem;
+    max-width: 30rem;
   }
 
   @media (max-width: 1080px) {
@@ -157,8 +156,8 @@
       margin-top: 5rem;
     }
     .nav-active {
-      width: 65px;
-      min-width: 65px;
+      width: 70px;
+      max-width: 70px;
     }
   }
   .menu-btn {

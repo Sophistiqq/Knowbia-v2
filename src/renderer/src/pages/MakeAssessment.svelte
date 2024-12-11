@@ -1,21 +1,25 @@
 <script lang="ts">
+  import { Refresh, Save, Remove_red_eye } from 'svelte-google-materialdesign-icons'
   import { toast } from '../utils/Toast'
   import { fly, slide } from 'svelte/transition'
+  import AssessmentPreview from '../components/AssessmentPreview.svelte'
 
   // Types
   type Assessment = {
     title: string
     description: string
     time_limit: number
+    shuffleQuestions: boolean
     questions: Question[]
   }
 
+  // Update the Question type to include more specific properties for different question types
   type Question = {
-    id: string
+    id: number
     question: string
-    type: 'multiple_choice' | 'short_answer' | 'true_false'
+    type: 'multiple_choice' | 'short_answer' | 'true_false' | 'ranking' | 'essay' | 'linear_scale'
     options?: string[]
-    correctAnswers?: string[]
+    correctAnswers?: any[]
     required: boolean
     points: number
     shuffleOptions: boolean
@@ -23,6 +27,60 @@
     hint?: string
     media?: string | null
     showMediaUpload?: boolean
+    // Linear Scale specific properties
+    linearScaleStart?: number
+    linearScaleEnd?: number
+    linearScaleStep?: number
+  }
+
+  // Update the initial state and add methods to handle specific question types
+
+  // Linear Scale Handler
+  function setupLinearScale(question: Question) {
+    // Set default values if not already defined
+    question.linearScaleStart = question.linearScaleStart || 1
+    question.linearScaleEnd = question.linearScaleEnd || 5
+    question.linearScaleStep = question.linearScaleStep || 1
+
+    // Ensure start is less than end
+    if (question.linearScaleStart >= question.linearScaleEnd) {
+      question.linearScaleStart = 1
+      question.linearScaleEnd = 5
+    }
+
+    // Initialize correct answers array with the midpoint
+    const midpoint = Math.floor((question.linearScaleStart + question.linearScaleEnd) / 2)
+    question.correctAnswers = [midpoint]
+  }
+
+  // Ranking Question Validation and Setup
+  function setupRankingQuestion(question: Question) {
+    // Ensure unique ranks
+    if (question.type === 'ranking') {
+      // Convert correctAnswers to numbers
+      question.correctAnswers = question.correctAnswers?.map(Number) || []
+
+      // Check for unique ranks
+      const uniqueRanks = new Set(question.correctAnswers)
+      if (uniqueRanks.size !== question.correctAnswers.length) {
+        toast('Ranks must be unique and consecutive starting from 1', '2000', 'warning')
+      }
+    }
+  }
+
+  // Update type-specific handlers to include validation and setup
+  function updateQuestionType(question: Question, newType: Question['type']) {
+    // Reset type-specific properties
+    delete question.linearScaleStart
+    delete question.linearScaleEnd
+    delete question.linearScaleStep
+
+    // Reset options and correct answers based on type
+    question.options = []
+    question.correctAnswers = []
+
+    // Update question type
+    question.type = newType
   }
 
   // Initial State
@@ -30,6 +88,7 @@
     title: 'Untitled Assessment',
     description: '',
     time_limit: 60,
+    shuffleQuestions: false,
     questions: []
   }
 
@@ -49,9 +108,9 @@
   // Question Management
   function addQuestion() {
     const newQuestion: Question = {
-      id: crypto.randomUUID(),
+      id: Math.max(...assessment.questions.map((q) => q.id), 0) + 1,
       question: '',
-      type: 'multiple_choice',
+      type: 'short_answer',
       required: false,
       points: 1,
       shuffleOptions: false,
@@ -64,7 +123,7 @@
 
   function duplicateQuestion(question: Question, index: number) {
     const duplicatedQuestion = structuredClone(question)
-    duplicatedQuestion.id = crypto.randomUUID()
+    duplicatedQuestion.id = Math.max(...assessment.questions.map((q) => q.id), 0) + 1
     assessment.questions = [
       ...assessment.questions.slice(0, index + 1),
       duplicatedQuestion,
@@ -83,15 +142,21 @@
 
   // Question Type Specific Handlers
   function addQuestionOption(question: Question) {
-    if (question.type === 'multiple_choice') {
+    if (question.type === 'multiple_choice' || question.type === 'ranking') {
       question.options = [...(question.options || []), '']
+      if (question.type === 'ranking') {
+        question.correctAnswers = question.correctAnswers?.map((_, i) => i + 1) || []
+      }
       assessment = { ...assessment }
     }
   }
 
   function removeQuestionOption(question: Question, optionIndex: number) {
-    if (question.type === 'multiple_choice') {
+    if (question.type === 'multiple_choice' || question.type === 'ranking') {
       question.options = question.options?.filter((_, index) => index !== optionIndex) || []
+      if (question.type === 'ranking') {
+        question.correctAnswers = question.correctAnswers?.map((_, i) => i + 1) || []
+      }
       assessment = { ...assessment }
     }
   }
@@ -152,6 +217,7 @@
       title: 'Untitled Assessment',
       description: '',
       time_limit: 60,
+      shuffleQuestions: false,
       questions: []
     }
     addQuestion()
@@ -181,16 +247,20 @@
   <nav class="nav">
     <h1>Create an Assessment</h1>
     <div class="button-group">
-      <button title="Save Assessment" on:click={saveAssessment}>Save</button>
+      <button title="Distribute the Assessment to Students">Distribute</button>
+      <button title="Save Assessment" on:click={saveAssessment}><Save size="20" /></button>
       <button on:click={() => (resetConfirmation = !resetConfirmation)} title="Reset Assessment">
-        Reset
+        <Refresh size="20" />
       </button>
-      <button title="Toggle Preview" on:click={() => (preview = !preview)}> Preview </button>
+      <button title="Toggle Preview" on:click={() => (preview = !preview)}
+        ><Remove_red_eye size="20" /></button
+      >
     </div>
   </nav>
 
   <div class="container">
     <div class="assessment-details">
+      <h3>Assessment Details</h3>
       <section class="assessment-header">
         <input type="text" placeholder="Assessment Title" bind:value={assessment.title} required />
         <textarea
@@ -199,36 +269,33 @@
           bind:this={descriptionTextarea}
           on:input={adjustTextareaHeight}
         ></textarea>
-        <input
-          type="number"
-          placeholder="Time Limit (minutes)"
-          bind:value={assessment.time_limit}
-          min="1"
-        />
+        <div class="header-options">
+          <div class="time-limit-wrapper">
+            <label for="time_limit">Time Limit: </label>
+            <input
+              type="number"
+              placeholder="Time Limit (minutes)"
+              bind:value={assessment.time_limit}
+              min="1"
+            />
+          </div>
+          <div class="shuffle-wrapper">
+            <label for="shuffleQuestions">Shuffle Questions</label>
+            <input
+              id="shuffleQuestions"
+              type="checkbox"
+              bind:checked={assessment.shuffleQuestions}
+            />
+          </div>
+        </div>
       </section>
 
       <section class="questions-section">
         <h3>Questions</h3>
-
         {#each assessment.questions as question, index (question.id)}
           <div class="question-card" transition:slide={{ axis: 'y' }}>
             <textarea placeholder="Enter question text" bind:value={question.question} required
             ></textarea>
-
-            <div class="question-type-points">
-              <select bind:value={question.type} class="question-type">
-                <option value="multiple_choice">Multiple Choice</option>
-                <option value="short_answer">Short Answer</option>
-                <option value="true_false">True/False</option>
-              </select>
-              <input
-                type="number"
-                placeholder="Points"
-                bind:value={question.points}
-                min="1"
-                class="points-input"
-              />
-            </div>
 
             <div class="checkbox-group">
               <label>
@@ -237,24 +304,78 @@
               </label>
               <label>
                 <input type="checkbox" bind:checked={question.shuffleOptions} />
-                <p>Shuffle</p>
+                <p>Shuffle Options</p>
               </label>
             </div>
+            <div class="question-type-points">
+              <select
+                bind:value={question.type}
+                class="question-type"
+                on:change={() => updateQuestionType(question, question.type)}
+              >
+                <option value="short_answer">Short Answer</option>
+                <option value="essay">Essay</option>
+                <option value="true_false">True/False</option>
+                <option value="multiple_choice">Multiple Choice</option>
+                <option value="ranking">Ranking</option>
+                <option value="linear_scale">Linear Scale</option>
+              </select>
+              <input
+                type="number"
+                placeholder="Points"
+                bind:value={question.points}
+                min="1"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                class="points-input"
+              />
+            </div>
+
+            {#if question.type === 'short_answer'}
+              <input
+                type="text"
+                placeholder="Correct Answer"
+                bind:value={question.correctAnswers[0]}
+              />
+            {/if}
+
+            {#if question.type === 'true_false'}
+              <div class="checkbox-group">
+                <label>
+                  <input
+                    type="radio"
+                    name={`true_false_${question.id}`}
+                    value="true"
+                    bind:group={question.correctAnswers}
+                  />
+                  <p>True</p>
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name={`true_false_${question.id}`}
+                    value="false"
+                    bind:group={question.correctAnswers}
+                  />
+                  <p>False</p>
+                </label>
+              </div>
+            {/if}
 
             {#if question.type === 'multiple_choice'}
               <div class="options-section">
-                {#each question.options || [] as option, optIndex}
+                {#each question.options || [] as _option, optIndex}
                   <div class="option-input" transition:slide={{ axis: 'y' }}>
                     <input
                       type="checkbox"
-                      checked={question.correctAnswers?.includes(option)}
+                      checked={question.correctAnswers?.includes(optIndex)}
                       on:change={() => {
-                        if (question.correctAnswers?.includes(option)) {
+                        if (question.correctAnswers?.includes(optIndex)) {
                           question.correctAnswers = question.correctAnswers.filter(
-                            (a) => a !== option
+                            (a) => a !== optIndex
                           )
                         } else {
-                          question.correctAnswers = [...(question.correctAnswers || []), option]
+                          question.correctAnswers = [...(question.correctAnswers || []), optIndex]
                         }
                       }}
                     />
@@ -272,6 +393,85 @@
               </div>
             {/if}
 
+            {#if question.type === 'essay'}
+              <textarea
+                placeholder="Enter essay text"
+                bind:value={question.correctAnswers[0]}
+                required
+              ></textarea>
+            {/if}
+
+            {#if question.type === 'ranking'}
+              <div class="options-section">
+                {#each question.options || [] as _option, optIndex}
+                  <div class="option-input" transition:slide={{ axis: 'y' }}>
+                    <input
+                      type="text"
+                      bind:value={question.options[optIndex]}
+                      placeholder={`Option ${optIndex + 1}`}
+                    />
+                    <input
+                      type="number"
+                      bind:value={question.correctAnswers[optIndex]}
+                      placeholder="Rank"
+                      min="1"
+                      max={(question.options || []).length}
+                      on:change={() => {
+                        question.correctAnswers =
+                          question.correctAnswers?.map((_, i) => i + 1) || []
+                        setupRankingQuestion(question)
+                      }}
+                    />
+                    <button on:click={() => removeQuestionOption(question, optIndex)}>
+                      Remove
+                    </button>
+                  </div>
+                {/each}
+                <button on:click={() => addQuestionOption(question)}> Add Option </button>
+              </div>
+            {/if}
+
+            {#if question.type === 'linear_scale'}
+              <div class="options-section">
+                <div class="linear-scale-inputs">
+                  <label>
+                    Start:
+                    <input
+                      type="number"
+                      bind:value={question.linearScaleStart}
+                      min="0"
+                      max={question.linearScaleEnd || 10}
+                    />
+                  </label>
+                  <label>
+                    End:
+                    <input
+                      type="number"
+                      bind:value={question.linearScaleEnd}
+                      min={(question.linearScaleStart || 0) + 1}
+                      max="10"
+                    />
+                  </label>
+                  <label>
+                    Step:
+                    <input type="number" bind:value={question.linearScaleStep} min="1" max="5" />
+                  </label>
+                </div>
+                <div class="correct-answer-selection">
+                  <label for="linear-scale-answer">Correct Answer:</label>
+                  <select
+                    id="linear-scale-answer"
+                    bind:value={question.correctAnswers[0]}
+                    class="linear-scale-answer"
+                  >
+                    {#each Array.from({ length: (question.linearScaleEnd || 5) - (question.linearScaleStart || 1) + 1 }, (_, i) => (question.linearScaleStart || 1) + i) as value}
+                      <option>{value}</option>
+                    {/each}
+                  </select>
+                </div>
+              </div>
+            {/if}
+
             <div class="media-upload-section">
               <button
                 class="toggle-media-upload"
@@ -281,7 +481,7 @@
               </button>
 
               {#if question.showMediaUpload}
-                <div class="media-input-container">
+                <div class="media-input-container" transition:slide={{ axis: 'y' }}>
                   <input
                     type="file"
                     accept="image/*,video/*"
@@ -310,6 +510,7 @@
       <div class="preview-container" transition:slide={{ axis: 'x' }}>
         <h3>Preview</h3>
         <pre>{JSON.stringify(assessment, null, 2)}</pre>
+        <AssessmentPreview {assessment} />
       </div>
     {/if}
   </div>
@@ -330,9 +531,13 @@
 
 <style lang="scss">
   main {
-    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: auto;
     margin: 0 auto;
-    padding: 1rem;
+    gap: 1rem;
+    padding-right: 1rem;
   }
 
   .nav {
@@ -340,6 +545,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    padding-top: 1rem;
+
+    .button-group {
+      display: flex;
+      gap: 0.5rem;
+    }
   }
 
   .container {
@@ -349,6 +560,60 @@
 
   .assessment-details {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .assessment-header {
+    border: var(--border);
+    background: var(--background);
+    padding: 1rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+    input[type='text'],
+    textarea {
+      width: 100%;
+      padding: 0.5rem;
+      background: var(--background);
+      border: var(--border);
+      margin-bottom: 0.5rem;
+    }
+  }
+  .questions-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .header-options {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    white-space: nowrap;
+  }
+
+  .shuffle-wrapper {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-start;
+    white-space: nowrap;
+  }
+
+  .time-limit-wrapper {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: flex-start;
+    white-space: nowrap;
+    input {
+      width: 5ch;
+      border: none;
+      background: transparent;
+      border-bottom: 1px solid var(--border-color);
+    }
   }
 
   .question-card {
@@ -356,7 +621,6 @@
     background: var(--background);
     padding: 1rem;
     margin-bottom: 1rem;
-    border-radius: 5px;
   }
 
   .question-type-points {
@@ -369,7 +633,7 @@
     }
 
     .points-input {
-      width: 100px;
+      width: 6ch;
     }
   }
 
@@ -377,6 +641,7 @@
     display: flex;
     gap: 1rem;
     margin-bottom: 0.5rem;
+    white-space: nowrap;
     label {
       display: flex;
       justify-content: flex-start;
@@ -388,7 +653,6 @@
   }
 
   .options-section {
-    margin-top: 0.5rem;
     button {
       margin-top: 0.5rem;
     }
@@ -398,25 +662,28 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    input[type='checkbox'] {
-      margin: auto;
+    gap: 0.2rem;
+
+    & > * {
+      width: 3rem;
     }
+
     input[type='text'] {
-      width: auto;
-      margin: auto;
+      width: 100%;
     }
     button {
-      margin: auto;
+      margin: 0 0.2rem;
+      padding: 0.5rem 1rem;
+      width: auto;
     }
   }
 
   .preview-container {
-    flex: 1;
-    border: 1px solid #ddd;
+    border: var(--border);
+    background: var(--background);
     padding: 1rem;
-    max-height: 600px;
-    overflow-y: auto;
+    width: auto;
+    min-width: 30%;
   }
 
   .modal {
@@ -429,13 +696,24 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    backdrop-filter: blur(5px);
   }
 
   .modal-content {
-    background: white;
+    background: var(--background);
+    border: var(--border);
     padding: 2rem;
     border-radius: 5px;
     text-align: center;
+
+    button {
+      margin: 0 0.5rem;
+      margin-top: 1rem;
+      transition: background 0.2s;
+      &:hover {
+        background: var(--hover);
+      }
+    }
   }
 
   .media-preview {
@@ -445,15 +723,22 @@
 
   .media-upload-section {
     margin: 0.5rem 0;
-  }
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    flex-direction: column;
 
-  .toggle-media-upload {
-    margin-bottom: 0.5rem;
+    input[type='file'] {
+      padding: 0.5rem;
+    }
   }
 
   .question-action-buttons {
     display: flex;
-    margin-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.5rem;
     justify-content: space-between;
   }
 
@@ -483,5 +768,23 @@
     cursor: pointer;
     background: var(--background);
     border: var(--border);
+
+    &:hover {
+      background: var(--hover);
+    }
+  }
+
+  /* Option and Select Styling */
+  select {
+    appearance: none;
+    padding: 0.5rem;
+    background: var(--background);
+    border: var(--border);
+    cursor: pointer;
+  }
+  option {
+    background: var(--background-solid);
+    font-size: 1rem;
+    color: var(--text);
   }
 </style>
