@@ -1,69 +1,44 @@
 <script lang="ts">
-  import { Restart_alt, Remove_red_eye, Save } from 'svelte-google-materialdesign-icons'
   import { toast } from '../utils/Toast'
   import { fly, slide } from 'svelte/transition'
-  import AssessmentPreview from '../components/AssessmentPreview.svelte'
-  import QuestionField from '../components/QuestionField.svelte'
 
+  // Types
   type Assessment = {
     title: string
     description: string
     time_limit: number
-    questions: any[]
-    answers: any[]
+    questions: Question[]
   }
+
   type Question = {
     id: string
     question: string
-    type: string
+    type: 'multiple_choice' | 'short_answer' | 'true_false'
     options?: string[]
-    correctAnswer?: string
-    allowOther?: boolean
-    required?: boolean
+    correctAnswers?: string[]
+    required: boolean
+    points: number
+    shuffleOptions: boolean
+    category?: string
+    hint?: string
+    media?: string | null
+    showMediaUpload?: boolean
   }
 
+  // Initial State
   let assessment: Assessment = {
     title: 'Untitled Assessment',
     description: '',
     time_limit: 60,
-    questions: [],
-    answers: []
+    questions: []
   }
 
-  function resetAssessment() {
-    assessment = {
-      title: 'Untitled Assessment',
-      description: '',
-      time_limit: 60,
-      questions: [],
-      answers: []
-    }
-    resetConfirmation = false
-    toast('Assessment reset', '2000', 'success')
-  }
-
+  // UI State
   let resetConfirmation = false
   let preview = true
-  $: open = preview ? 'open' : ''
-
-  // if the screen is too small show a toast
-  $: if (window.innerWidth < 800) {
-    preview = false
-    toast('Preview is disabled on small screens', '2000', 'info')
-  }
-
-  // Keyboard shortcuts, ctrl + s to save, ctrl + p to preview
-  window.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.key === 's') {
-      saveAssessment()
-    }
-    if (e.ctrlKey && e.key === 'p') {
-      preview = !preview
-    }
-  })
-
-  // Textarea auto resize
   let descriptionTextarea: HTMLTextAreaElement
+
+  // Utility Functions
   function adjustTextareaHeight() {
     if (descriptionTextarea) {
       descriptionTextarea.style.height = 'auto'
@@ -71,34 +46,20 @@
     }
   }
 
-  async function saveAssessment() {
-    try {
-      console.table(assessment)
-      const response = await fetch('http://localhost:3000/assessments/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(assessment)
-      })
-      const data = await response.json()
-      toast(data.message, '2000', data.status)
-    } catch (err) {
-      console.error(err)
-      toast('Failed to save assessment', '2000', 'error')
-    }
-  }
+  // Question Management
   function addQuestion() {
-    assessment.questions = [
-      ...assessment.questions,
-      {
-        id: crypto.randomUUID(),
-        question: '',
-        type: 'short_answer',
-        required: false,
-        answers: []
-      }
-    ]
+    const newQuestion: Question = {
+      id: crypto.randomUUID(),
+      question: '',
+      type: 'multiple_choice',
+      required: false,
+      points: 1,
+      shuffleOptions: false,
+      options: [''],
+      correctAnswers: [],
+      showMediaUpload: false
+    }
+    assessment.questions = [...assessment.questions, newQuestion]
   }
 
   function duplicateQuestion(question: Question, index: number) {
@@ -113,6 +74,106 @@
 
   function deleteQuestion(index: number) {
     assessment.questions = assessment.questions.filter((_, i) => i !== index)
+
+    // Ensure at least one question exists
+    if (assessment.questions.length === 0) {
+      addQuestion()
+    }
+  }
+
+  // Question Type Specific Handlers
+  function addQuestionOption(question: Question) {
+    if (question.type === 'multiple_choice') {
+      question.options = [...(question.options || []), '']
+      assessment = { ...assessment }
+    }
+  }
+
+  function removeQuestionOption(question: Question, optionIndex: number) {
+    if (question.type === 'multiple_choice') {
+      question.options = question.options?.filter((_, index) => index !== optionIndex) || []
+      assessment = { ...assessment }
+    }
+  }
+
+  // Media Upload (Simulated)
+  async function handleMediaUpload(event: Event, question: Question) {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+
+    if (file) {
+      try {
+        // Simulated upload - in real scenario, use FormData and actual upload
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          question.media = e.target?.result as string
+          toast('Media uploaded successfully', '2000', 'success')
+        }
+        reader.readAsDataURL(file)
+      } catch (error) {
+        toast('Media upload failed', '2000', 'error')
+      }
+    }
+  }
+
+  // Save Assessment
+  async function saveAssessment() {
+    // Validation
+    if (!assessment.title.trim()) {
+      toast('Please enter an assessment title', '2000', 'error')
+      return
+    }
+
+    if (assessment.questions.length === 0) {
+      toast('Please add at least one question', '2000', 'error')
+      return
+    }
+
+    try {
+      const response = await fetch('http://localhost:3000/assessments/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(assessment)
+      })
+
+      const data = await response.json()
+      toast(data.message, '2000', data.status)
+    } catch (err) {
+      console.error(err)
+      toast('Failed to save assessment', '2000', 'error')
+    }
+  }
+
+  // Reset Assessment
+  function resetAssessment() {
+    assessment = {
+      title: 'Untitled Assessment',
+      description: '',
+      time_limit: 60,
+      questions: []
+    }
+    addQuestion()
+    resetConfirmation = false
+    toast('Assessment reset', '2000', 'success')
+  }
+
+  // Keyboard Shortcuts
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 's') {
+      e.preventDefault()
+      saveAssessment()
+    }
+    if (e.ctrlKey && e.key === 'p') {
+      e.preventDefault()
+      preview = !preview
+    }
+  })
+
+  // Initialize with one question
+  $: if (assessment.questions.length === 0) {
+    addQuestion()
   }
 </script>
 
@@ -120,28 +181,18 @@
   <nav class="nav">
     <h1>Create an Assessment</h1>
     <div class="button-group">
-      <button title="Share the Assessment"><b>Distribute</b></button>
-      <button on:click={saveAssessment} title="Save it for Later"
-        ><Save variation="filled" /></button
-      >
-      <button on:click={() => (resetConfirmation = !resetConfirmation)} title="Reset the Assessment"
-        ><Restart_alt variation="filled" /></button
-      >
-      <button
-        title="Show the Preview"
-        on:click={() => {
-          preview = !preview
-          console.log(open)
-        }}><Remove_red_eye variation="filled" /></button
-      >
+      <button title="Save Assessment" on:click={saveAssessment}>Save</button>
+      <button on:click={() => (resetConfirmation = !resetConfirmation)} title="Reset Assessment">
+        Reset
+      </button>
+      <button title="Toggle Preview" on:click={() => (preview = !preview)}> Preview </button>
     </div>
   </nav>
 
   <div class="container">
-    <div class="assessment-header">
-      <h3>Assessment Headers</h3>
-      <div class="input-group">
-        <input type="text" placeholder="Assessment Title" bind:value={assessment.title} />
+    <div class="assessment-details">
+      <section class="assessment-header">
+        <input type="text" placeholder="Assessment Title" bind:value={assessment.title} required />
         <textarea
           placeholder="Assessment Description"
           bind:value={assessment.description}
@@ -152,121 +203,220 @@
           type="number"
           placeholder="Time Limit (minutes)"
           bind:value={assessment.time_limit}
+          min="1"
         />
-      </div>
+      </section>
 
-      <div class="separator"></div>
-      <h3>Questions</h3>
-      <div class="questions-container">
-        {#if assessment.questions.length === 0}
-          {addQuestion()}
-        {/if}
+      <section class="questions-section">
+        <h3>Questions</h3>
 
         {#each assessment.questions as question, index (question.id)}
-          <QuestionField
-            bind:question
-            onAdd={addQuestion}
-            onDelete={() => deleteQuestion(index)}
-            onDuplicate={() => duplicateQuestion(question, index)}
-          />
+          <div class="question-card" transition:slide={{ axis: 'y' }}>
+            <textarea placeholder="Enter question text" bind:value={question.question} required
+            ></textarea>
+
+            <div class="question-type-points">
+              <select bind:value={question.type} class="question-type">
+                <option value="multiple_choice">Multiple Choice</option>
+                <option value="short_answer">Short Answer</option>
+                <option value="true_false">True/False</option>
+              </select>
+              <input
+                type="number"
+                placeholder="Points"
+                bind:value={question.points}
+                min="1"
+                class="points-input"
+              />
+            </div>
+
+            <div class="checkbox-group">
+              <label>
+                <input type="checkbox" bind:checked={question.required} />
+                <p>Required</p>
+              </label>
+              <label>
+                <input type="checkbox" bind:checked={question.shuffleOptions} />
+                <p>Shuffle</p>
+              </label>
+            </div>
+
+            {#if question.type === 'multiple_choice'}
+              <div class="options-section">
+                {#each question.options || [] as option, optIndex}
+                  <div class="option-input" transition:slide={{ axis: 'y' }}>
+                    <input
+                      type="checkbox"
+                      checked={question.correctAnswers?.includes(option)}
+                      on:change={() => {
+                        if (question.correctAnswers?.includes(option)) {
+                          question.correctAnswers = question.correctAnswers.filter(
+                            (a) => a !== option
+                          )
+                        } else {
+                          question.correctAnswers = [...(question.correctAnswers || []), option]
+                        }
+                      }}
+                    />
+                    <input
+                      type="text"
+                      bind:value={question.options[optIndex]}
+                      placeholder={`Option ${optIndex + 1}`}
+                    />
+                    <button on:click={() => removeQuestionOption(question, optIndex)}>
+                      Remove
+                    </button>
+                  </div>
+                {/each}
+                <button on:click={() => addQuestionOption(question)}> Add Option </button>
+              </div>
+            {/if}
+
+            <div class="media-upload-section">
+              <button
+                class="toggle-media-upload"
+                on:click={() => (question.showMediaUpload = !question.showMediaUpload)}
+              >
+                {question.showMediaUpload ? 'Hide' : 'Add'} Media
+              </button>
+
+              {#if question.showMediaUpload}
+                <div class="media-input-container">
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    on:change={(e) => handleMediaUpload(e, question)}
+                  />
+                </div>
+              {/if}
+
+              {#if question.media}
+                <img src={question.media} alt="Uploaded media" class="media-preview" />
+              {/if}
+            </div>
+
+            <div class="question-action-buttons">
+              <button on:click={addQuestion} class="add-question-btn"> Add Question </button>
+
+              <button on:click={() => duplicateQuestion(question, index)}> Duplicate </button>
+              <button on:click={() => deleteQuestion(index)}> Delete </button>
+            </div>
+          </div>
         {/each}
-      </div>
+      </section>
     </div>
+
     {#if preview}
-      <div class="preview-container {open}" transition:slide={{ axis: 'x' }}>
+      <div class="preview-container" transition:slide={{ axis: 'x' }}>
         <h3>Preview</h3>
-        <AssessmentPreview {assessment} />
+        <pre>{JSON.stringify(assessment, null, 2)}</pre>
       </div>
     {/if}
   </div>
-</main>
 
-{#if resetConfirmation}
-  <div class="modal" transition:fly>
-    <div class="modal-content">
-      <h3>Reset Assessment</h3>
-      <p>Are you sure you want to reset the assessment?</p>
-      <div class="button-group">
-        <button on:click={resetAssessment}>Yes</button>
-        <button on:click={() => (resetConfirmation = false)}>No</button>
+  {#if resetConfirmation}
+    <div class="modal" transition:fly>
+      <div class="modal-content">
+        <h3>Reset Assessment</h3>
+        <p>Are you sure you want to reset the assessment?</p>
+        <div class="button-group">
+          <button on:click={resetAssessment}>Yes</button>
+          <button on:click={() => (resetConfirmation = false)}>No</button>
+        </div>
       </div>
     </div>
-  </div>
-{/if}
+  {/if}
+</main>
 
 <style lang="scss">
-  .container {
-    display: flex;
-    gap: 1rem;
-    padding-top: 1rem;
-    justify-content: space-between;
-  }
-  .separator {
-    height: 2px;
-    width: 100%;
-    background: var(--hover);
-    margin: 0.5rem 0;
+  main {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
   }
 
   .nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-block: 2.5rem;
-    border-bottom: var(--border);
-    backdrop-filter: blur(10px);
-    height: 4rem;
-    .button-group {
+    margin-bottom: 1rem;
+  }
+
+  .container {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .assessment-details {
+    flex: 1;
+  }
+
+  .question-card {
+    border: var(--border);
+    background: var(--background);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 5px;
+  }
+
+  .question-type-points {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+
+    .question-type {
+      flex: 1;
+    }
+
+    .points-input {
+      width: 100px;
+    }
+  }
+
+  .checkbox-group {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    label {
       display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      button {
-        padding: 0.5rem 1rem;
-        border: var(--border);
-        border-radius: 5px;
-        background: var(--background);
-        cursor: pointer;
-        &:hover {
-          background: var(--hover);
-        }
+      justify-content: flex-start;
+      gap: 0.5rem;
+      input {
+        margin: 0;
       }
     }
   }
-  main {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    margin-right: 1rem;
-  }
 
-  .assessment-header {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    width: 100%;
-  }
-  .input-group {
+  .options-section {
     margin-top: 0.5rem;
+    button {
+      margin-top: 0.5rem;
+    }
+  }
+
+  .option-input {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
+    input[type='checkbox'] {
+      margin: auto;
+    }
+    input[type='text'] {
+      width: auto;
+      margin: auto;
+    }
+    button {
+      margin: auto;
+    }
   }
 
-  input {
-    width: 100%;
-    padding: 10px;
-    border: var(--border);
-    border-radius: 5px;
-    background: var(--background);
-  }
-
-  textarea {
-    width: 100%;
-    padding: 10px;
-    border: var(--border);
-    border-radius: 5px;
-    background: var(--background);
+  .preview-container {
+    flex: 1;
+    border: 1px solid #ddd;
+    padding: 1rem;
+    max-height: 600px;
+    overflow-y: auto;
   }
 
   .modal {
@@ -275,56 +425,63 @@
     left: 0;
     width: 100%;
     height: 100%;
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
-    backdrop-filter: blur(10px);
     justify-content: center;
     align-items: center;
-    z-index: 100;
   }
+
   .modal-content {
-    width: 30rem;
+    background: white;
     padding: 2rem;
-    background: var(--background);
     border-radius: 5px;
+    text-align: center;
+  }
+
+  .media-preview {
+    max-width: 200px;
+    margin-top: 0.5rem;
+  }
+
+  .media-upload-section {
+    margin: 0.5rem 0;
+  }
+
+  .toggle-media-upload {
+    margin-bottom: 0.5rem;
+  }
+
+  .question-action-buttons {
+    display: flex;
+    margin-top: 0.5rem;
+    justify-content: space-between;
+  }
+
+  input,
+  textarea,
+  select {
+    width: 100%;
+    padding: 0.5rem;
+    background: var(--background);
     border: var(--border);
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    h3 {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
-    }
-    p {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-    }
-    .button-group {
-      display: flex;
-      justify-content: center;
-      gap: 1rem;
-
-      button {
-        padding: 1rem 2rem;
-        border-radius: 5px;
-        border: var(--border);
-        background: var(--background);
-        cursor: pointer;
-        &:hover {
-          background: var(--hover);
-        }
-      }
-    }
   }
 
-  .open {
-    width: 30rem;
+  input[type='file'] {
+    background: var(--background);
   }
 
-  @media (width < 768px) {
-    .preview-container,
-    .open {
-      white-space: nowrap;
-      overflow: hidden;
-      display: none;
-      width: 0;
-    }
+  input[type='file']::-webkit-file-upload-button {
+    background: var(--background);
+    border: var(--border);
+    color: var(--text);
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+  }
+
+  button {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    background: var(--background);
+    border: var(--border);
   }
 </style>

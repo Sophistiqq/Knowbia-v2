@@ -1,23 +1,23 @@
 class ToastManager {
-  private static instance: ToastManager;
-  private containerElement: HTMLElement | null = null;
-  private toasts: HTMLElement[] = [];
+  private static instance: ToastManager
+  private containerElement: HTMLElement | null = null
+  private toasts: HTMLElement[] = []
 
-  private constructor() { }
+  private constructor() {}
 
   public static getInstance(): ToastManager {
     if (!ToastManager.instance) {
-      ToastManager.instance = new ToastManager();
-      ToastManager.instance.createContainer();
+      ToastManager.instance = new ToastManager()
+      ToastManager.instance.createContainer()
     }
-    return ToastManager.instance;
+    return ToastManager.instance
   }
 
   private createContainer() {
-    this.containerElement = document.createElement('div');
-    this.containerElement.className = 'toast-container';
+    this.containerElement = document.createElement('div')
+    this.containerElement.className = 'toast-container'
 
-    const style = document.createElement('style');
+    const style = document.createElement('style')
     style.textContent = `
       .toast-container {
         position: fixed;
@@ -46,10 +46,10 @@ class ToastManager {
       .toast.success { background-color: #4CAF50; }
       .toast.error { background-color: #F44336; }
       .toast.warning { background-color: #FF9800; }
-    `;
+    `
 
-    document.body.appendChild(this.containerElement);
-    document.body.appendChild(style);
+    document.body.appendChild(this.containerElement)
+    document.body.appendChild(style)
   }
 
   public show(
@@ -58,40 +58,40 @@ class ToastManager {
     type: 'success' | 'error' | 'warning' = 'success'
   ) {
     if (!this.containerElement) {
-      this.createContainer();
+      this.createContainer()
     }
 
-    const toastElement = document.createElement('div');
-    toastElement.className = `toast ${type}`;
-    toastElement.textContent = message;
+    const toastElement = document.createElement('div')
+    toastElement.className = `toast ${type}`
+    toastElement.textContent = message
 
-    this.containerElement?.appendChild(toastElement);
-    this.toasts.push(toastElement);
+    this.containerElement?.appendChild(toastElement)
+    this.toasts.push(toastElement)
 
     // Trigger reflow to enable transition
-    toastElement.offsetHeight;
-    toastElement.classList.add('show');
+    toastElement.offsetHeight
+    toastElement.classList.add('show')
 
     const timeoutId = window.setTimeout(() => {
-      this.removeToast(toastElement);
-    }, duration);
+      this.removeToast(toastElement)
+    }, duration)
 
     // Optional: Add close on click
     toastElement.addEventListener('click', () => {
-      clearTimeout(timeoutId);
-      this.removeToast(toastElement);
-    });
+      clearTimeout(timeoutId)
+      this.removeToast(toastElement)
+    })
   }
 
   private removeToast(toastElement: HTMLElement) {
-    toastElement.classList.remove('show');
+    toastElement.classList.remove('show')
 
     setTimeout(() => {
-      toastElement.remove();
-      this.toasts = this.toasts.filter(toast => toast !== toastElement);
-    }, 500); // Match the transition duration
+      toastElement.remove()
+      this.toasts = this.toasts.filter((toast) => toast !== toastElement)
+    }, 500) // Match the transition duration
   }
 }
 
 // Export a singleton instance
-export const toast = ToastManager.getInstance().show.bind(ToastManager.getInstance());
+export const toast = ToastManager.getInstance().show.bind(ToastManager.getInstance())
