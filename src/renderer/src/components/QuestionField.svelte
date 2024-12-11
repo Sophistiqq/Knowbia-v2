@@ -3,7 +3,8 @@
     Add_box,
     Delete,
     Content_copy,
-    Arrow_drop_down
+    Arrow_drop_down,
+    Close
   } from 'svelte-google-materialdesign-icons'
   import { slide } from 'svelte/transition'
 
@@ -26,6 +27,7 @@
     type: QuestionType
     options?: string[]
     required?: boolean
+    allowOther?: boolean
     correctAnswer?: string | string[]
   }
 
@@ -65,8 +67,11 @@
 
     if (typesWithOptions.includes(newType)) {
       question.options = ['']
+      // Reset other-related properties when changing type
+      question.allowOther = false
     } else {
       question.options = undefined
+      question.allowOther = undefined
     }
 
     // Reset correct answer
@@ -112,6 +117,7 @@
     switch (question.type) {
       case 'radio':
       case 'multiple_choice':
+      case 'dropdown':
         localCorrectAnswer = question.options[index] || ''
         break
       case 'checkbox':
@@ -127,6 +133,20 @@
     // Update the question's correct answer
     question.correctAnswer = localCorrectAnswer
   }
+
+  // Toggle required status
+  function toggleRequired() {
+    question.required = !question.required
+  }
+
+  // Toggle allow other option
+  function toggleAllowOther() {
+    // Only for types with options
+    const typesWithOptions = ['multiple_choice', 'checkbox', 'dropdown', 'radio']
+    if (typesWithOptions.includes(question.type)) {
+      question.allowOther = !question.allowOther
+    }
+  }
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -135,13 +155,31 @@
   <div class="question-container">
     <!-- Question Header -->
     <div class="question-header">
-      <h4>Question</h4>
       <input
         type="text"
         class="question"
         bind:value={question.question}
         placeholder="Enter your question"
       />
+
+      <!-- Required and Other Options -->
+      <div class="question-options">
+        <label class="option-toggle">
+          <input type="checkbox" checked={question.required || false} on:change={toggleRequired} />
+          Required
+        </label>
+
+        {#if ['multiple_choice', 'checkbox', 'dropdown', 'radio'].includes(question.type)}
+          <label class="option-toggle">
+            <input
+              type="checkbox"
+              checked={question.allowOther || false}
+              on:change={toggleAllowOther}
+            />
+            Allow Other
+          </label>
+        {/if}
+      </div>
     </div>
 
     <!-- Question Type Dropdown -->
@@ -173,7 +211,7 @@
       {#if ['multiple_choice', 'checkbox', 'dropdown', 'radio'].includes(question.type)}
         {#if question.options}
           {#each question.options as option, index}
-            <div class="option-input-group">
+            <div class="option-input-group" transition:slide={{ axis: 'y', duration: 200 }}>
               <!-- Correct answer toggle -->
               {#if question.type === 'multiple_choice' || question.type === 'radio' || question.type === 'dropdown'}
                 <input
@@ -195,17 +233,20 @@
 
               <!-- Remove option button -->
               {#if (question.options?.length || 0) > 1}
-                <button on:click={() => removeOption(index)} class="remove-option"> ✖ </button>
+                <button on:click={() => removeOption(index)} class="remove-option"
+                  ><Close size="16" />
+                </button>
               {/if}
             </div>
           {/each}
 
           <!-- Add Option Button -->
           <button on:click={addOption} class="add-option-btn"> Add Option </button>
+          <!-- Other Option -->
         {/if}
       {/if}
 
-      <!-- Type-specific inputs -->
+      <!-- Rest of the existing input types remain the same -->
       {#if question.type === 'time'}
         <input type="time" bind:value={question.correctAnswer} />
       {/if}
@@ -251,7 +292,7 @@
   }
   .question-container {
     border-radius: 0.2rem;
-    padding: 0.75rem;
+    padding: 1rem;
     width: 100%;
     background: var(--background);
     border: var(--border);
@@ -328,6 +369,7 @@
     flex-direction: column;
     gap: 1rem;
   }
+
   textarea,
   input {
     border: var(--border);
@@ -340,7 +382,7 @@
   .option-input-group {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1rem 0.5rem;
     margin-bottom: 0.5rem;
     & input[type='radio'],
     & input[type='checkbox'] {
@@ -350,8 +392,45 @@
 
   .remove-option {
     background: none;
-    border: none;
-    color: red;
     cursor: pointer;
+    outline: none;
+    border: var(--border);
+    padding: 0.3rem;
+    display: grid;
+    place-items: center;
+    border-radius: 0.2rem;
+    &:hover {
+      background: var(--hover);
+    }
+  }
+
+  .question-options {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+
+  .option-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+
+    input[type='checkbox'] {
+      width: fit-content;
+      margin: 0;
+    }
+  }
+  .add-option-btn {
+    background: var(--background);
+    border: var(--border);
+    border-radius: 0.2rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    width: 100%;
+    outline: none;
+    &:hover {
+      background: var(--hover);
+    }
   }
 </style>

@@ -147,13 +147,18 @@
     }
   }
   .nav-active {
-    width: 30rem;
+    width: 20rem;
+    max-width: 20rem;
+    min-width: 20rem;
   }
 
   @media (max-width: 1080px) {
-    .nav-active {
-      max-width: 70px;
+    .nav {
       margin-top: 5rem;
+    }
+    .nav-active {
+      width: 65px;
+      min-width: 65px;
     }
   }
   .menu-btn {
@@ -181,7 +186,8 @@
       display: flex;
       padding: 2rem 1rem;
       align-items: center;
-      font-size: 1.3rem;
+      font-size: 1rem;
+      font-weight: bold;
       gap: 1rem;
       width: 100%;
       height: 3rem;

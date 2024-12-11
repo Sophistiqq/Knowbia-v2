@@ -18,6 +18,7 @@
     type: string
     options?: string[]
     correctAnswer?: string
+    allowOther?: boolean
     required?: boolean
   }
 
@@ -50,6 +51,16 @@
     preview = false
     toast('Preview is disabled on small screens', '2000', 'info')
   }
+
+  // Keyboard shortcuts, ctrl + s to save, ctrl + p to preview
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 's') {
+      saveAssessment()
+    }
+    if (e.ctrlKey && e.key === 'p') {
+      preview = !preview
+    }
+  })
 
   // Textarea auto resize
   let descriptionTextarea: HTMLTextAreaElement
@@ -109,12 +120,15 @@
   <nav class="nav">
     <h1>Create an Assessment</h1>
     <div class="button-group">
-      <button><b>Distribute</b></button>
-      <button on:click={saveAssessment}><Save variation="filled" /></button>
-      <button on:click={() => (resetConfirmation = !resetConfirmation)}
+      <button title="Share the Assessment"><b>Distribute</b></button>
+      <button on:click={saveAssessment} title="Save it for Later"
+        ><Save variation="filled" /></button
+      >
+      <button on:click={() => (resetConfirmation = !resetConfirmation)} title="Reset the Assessment"
         ><Restart_alt variation="filled" /></button
       >
       <button
+        title="Show the Preview"
         on:click={() => {
           preview = !preview
           console.log(open)
@@ -186,9 +200,6 @@
     gap: 1rem;
     padding-top: 1rem;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-inline: auto;
-    min-width: 80%;
   }
   .separator {
     height: 2px;

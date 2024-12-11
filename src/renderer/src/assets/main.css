@@ -16,6 +16,18 @@
   box-sizing: border-box;
   color: var(--text);
   font-family: 'Rubik', sans-serif;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+
+
+
+
+body {
+  background-color: black;
 }
 
 
@@ -70,4 +82,8 @@ body::before {
 
 ::-webkit-scrollbar-track:hover {
   background: var(--background-solid);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--background);
 }

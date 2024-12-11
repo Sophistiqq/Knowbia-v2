@@ -20,6 +20,7 @@
     type: QuestionType
     options?: string[]
     required?: boolean
+    allowOther?: boolean
     correctAnswer?: string | string[]
   }
   export let assessment: {
@@ -69,6 +70,18 @@
               <label for="q{question.id}-option{optIndex}">{option}</label>
             </div>
           {/each}
+          {#if question.allowOther}
+            <div class="preview-option">
+              <input
+                type="radio"
+                id="q{question.id}-option-other"
+                name="q{question.id}"
+                value="other"
+              />
+              <label for="q{question.id}-option-other">Other</label>
+              <input type="text" placeholder="Please specify" class="other-field" />
+            </div>
+          {/if}
         {:else if question.type === 'checkbox'}
           {#each question.options || [] as option, optIndex}
             <div class="preview-option">
@@ -76,12 +89,25 @@
               <label for="q{question.id}-option{optIndex}">{option}</label>
             </div>
           {/each}
+          {#if question.allowOther}
+            <div class="preview-option">
+              <input type="checkbox" id="q{question.id}-option-other" value="other" />
+              <label for="q{question.id}-option-other">Other</label>
+              <input type="text" placeholder="Please specify" class="other-field" />
+            </div>
+          {/if}
         {:else if question.type === 'dropdown'}
           <select class="preview-select">
             {#each question.options || [] as option}
               <option value={option}>{option}</option>
             {/each}
+            {#if question.allowOther}
+              <option value="other">Other</option>
+            {/if}
           </select>
+          {#if question.allowOther}
+            <input type="text" placeholder="Please specify" class="other-field" />
+          {/if}
         {:else if question.type === 'date'}
           <input type="date" class="preview-input" />
         {:else if question.type === 'time'}
@@ -165,6 +191,14 @@
     }
   }
 
+  .other-field {
+    border: none;
+    padding-block: 0.5rem;
+    margin-top: 0.5rem;
+    background: transparent;
+    border-bottom: var(--border);
+  }
+
   .question-input {
     margin-top: 0.5rem;
 
@@ -187,7 +221,6 @@
       display: flex;
       align-items: center;
       margin-bottom: 0.5rem;
-
       input {
         margin-right: 0.5rem;
       }
