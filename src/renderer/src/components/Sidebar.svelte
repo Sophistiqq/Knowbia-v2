@@ -8,8 +8,7 @@
     Create,
     Dashboard,
     Manage_accounts,
-    Monitor_heart,
-    Menu
+    Monitor_heart
   } from 'svelte-google-materialdesign-icons'
   let showMenu = localStorage.getItem('showMenu') || 'nav-active'
   let screenWidth = window.innerWidth

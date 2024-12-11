@@ -259,253 +259,261 @@
   </nav>
 
   <div class="container">
-    <div class="assessment-details">
-      <h3>Assessment Details</h3>
-      <section class="assessment-header">
-        <input type="text" placeholder="Assessment Title" bind:value={assessment.title} required />
-        <textarea
-          placeholder="Assessment Description"
-          bind:value={assessment.description}
-          bind:this={descriptionTextarea}
-          on:input={adjustTextareaHeight}
-        ></textarea>
-        <div class="header-options">
-          <div class="time-limit-wrapper">
-            <label for="time_limit">Time Limit: </label>
-            <input
-              type="number"
-              placeholder="Time Limit (minutes)"
-              bind:value={assessment.time_limit}
-              min="1"
-            />
-          </div>
-          <div class="shuffle-wrapper">
-            <label for="shuffleQuestions">Shuffle Questions</label>
-            <input
-              id="shuffleQuestions"
-              type="checkbox"
-              bind:checked={assessment.shuffleQuestions}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section class="questions-section">
-        <h3>Questions</h3>
-        {#each assessment.questions as question, index (question.id)}
-          <div class="question-card" transition:slide={{ axis: 'y' }}>
-            <textarea placeholder="Enter question text" bind:value={question.question} required
-            ></textarea>
-
-            <div class="checkbox-group">
-              <label>
-                <input type="checkbox" bind:checked={question.required} />
-                <p>Required</p>
-              </label>
-              <label>
-                <input type="checkbox" bind:checked={question.shuffleOptions} />
-                <p>Shuffle Options</p>
-              </label>
-            </div>
-            <div class="question-type-points">
-              <select
-                bind:value={question.type}
-                class="question-type"
-                on:change={() => updateQuestionType(question, question.type)}
-              >
-                <option value="short_answer">Short Answer</option>
-                <option value="essay">Essay</option>
-                <option value="true_false">True/False</option>
-                <option value="multiple_choice">Multiple Choice</option>
-                <option value="ranking">Ranking</option>
-                <option value="linear_scale">Linear Scale</option>
-              </select>
+    <div class="assessment-wrapper">
+      <div class="assessment-details">
+        <h3>Assessment Details</h3>
+        <section class="assessment-header">
+          <input
+            type="text"
+            placeholder="Assessment Title"
+            bind:value={assessment.title}
+            required
+          />
+          <textarea
+            placeholder="Assessment Description"
+            bind:value={assessment.description}
+            bind:this={descriptionTextarea}
+            on:input={adjustTextareaHeight}
+          ></textarea>
+          <div class="header-options">
+            <div class="time-limit-wrapper">
+              <label for="time_limit">Time Limit: </label>
               <input
                 type="number"
-                placeholder="Points"
-                bind:value={question.points}
+                placeholder="Time Limit (minutes)"
+                bind:value={assessment.time_limit}
                 min="1"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                class="points-input"
               />
             </div>
-
-            {#if question.type === 'short_answer'}
+            <div class="shuffle-wrapper">
+              <label for="shuffleQuestions">Shuffle Questions</label>
               <input
-                type="text"
-                placeholder="Correct Answer"
-                bind:value={question.correctAnswers[0]}
+                id="shuffleQuestions"
+                type="checkbox"
+                bind:checked={assessment.shuffleQuestions}
               />
-            {/if}
-
-            {#if question.type === 'true_false'}
-              <div class="checkbox-group">
-                <label>
-                  <input
-                    type="radio"
-                    name={`true_false_${question.id}`}
-                    value="true"
-                    bind:group={question.correctAnswers}
-                  />
-                  <p>True</p>
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name={`true_false_${question.id}`}
-                    value="false"
-                    bind:group={question.correctAnswers}
-                  />
-                  <p>False</p>
-                </label>
-              </div>
-            {/if}
-
-            {#if question.type === 'multiple_choice'}
-              <div class="options-section">
-                {#each question.options || [] as _option, optIndex}
-                  <div class="option-input" transition:slide={{ axis: 'y' }}>
-                    <input
-                      type="checkbox"
-                      checked={question.correctAnswers?.includes(optIndex)}
-                      on:change={() => {
-                        if (question.correctAnswers?.includes(optIndex)) {
-                          question.correctAnswers = question.correctAnswers.filter(
-                            (a) => a !== optIndex
-                          )
-                        } else {
-                          question.correctAnswers = [...(question.correctAnswers || []), optIndex]
-                        }
-                      }}
-                    />
-                    <input
-                      type="text"
-                      bind:value={question.options[optIndex]}
-                      placeholder={`Option ${optIndex + 1}`}
-                    />
-                    <button on:click={() => removeQuestionOption(question, optIndex)}>
-                      Remove
-                    </button>
-                  </div>
-                {/each}
-                <button on:click={() => addQuestionOption(question)}> Add Option </button>
-              </div>
-            {/if}
-
-            {#if question.type === 'essay'}
-              <textarea
-                placeholder="Enter essay text"
-                bind:value={question.correctAnswers[0]}
-                required
-              ></textarea>
-            {/if}
-
-            {#if question.type === 'ranking'}
-              <div class="options-section">
-                {#each question.options || [] as _option, optIndex}
-                  <div class="option-input" transition:slide={{ axis: 'y' }}>
-                    <input
-                      type="text"
-                      bind:value={question.options[optIndex]}
-                      placeholder={`Option ${optIndex + 1}`}
-                    />
-                    <input
-                      type="number"
-                      bind:value={question.correctAnswers[optIndex]}
-                      placeholder="Rank"
-                      min="1"
-                      max={(question.options || []).length}
-                      on:change={() => {
-                        question.correctAnswers =
-                          question.correctAnswers?.map((_, i) => i + 1) || []
-                        setupRankingQuestion(question)
-                      }}
-                    />
-                    <button on:click={() => removeQuestionOption(question, optIndex)}>
-                      Remove
-                    </button>
-                  </div>
-                {/each}
-                <button on:click={() => addQuestionOption(question)}> Add Option </button>
-              </div>
-            {/if}
-
-            {#if question.type === 'linear_scale'}
-              <div class="options-section">
-                <div class="linear-scale-inputs">
-                  <label>
-                    Start:
-                    <input
-                      type="number"
-                      bind:value={question.linearScaleStart}
-                      min="0"
-                      max={question.linearScaleEnd || 10}
-                    />
-                  </label>
-                  <label>
-                    End:
-                    <input
-                      type="number"
-                      bind:value={question.linearScaleEnd}
-                      min={(question.linearScaleStart || 0) + 1}
-                      max="10"
-                    />
-                  </label>
-                  <label>
-                    Step:
-                    <input type="number" bind:value={question.linearScaleStep} min="1" max="5" />
-                  </label>
-                </div>
-                <div class="correct-answer-selection">
-                  <label for="linear-scale-answer">Correct Answer:</label>
-                  <select
-                    id="linear-scale-answer"
-                    bind:value={question.correctAnswers[0]}
-                    class="linear-scale-answer"
-                  >
-                    {#each Array.from({ length: (question.linearScaleEnd || 5) - (question.linearScaleStart || 1) + 1 }, (_, i) => (question.linearScaleStart || 1) + i) as value}
-                      <option>{value}</option>
-                    {/each}
-                  </select>
-                </div>
-              </div>
-            {/if}
-
-            <div class="media-upload-section">
-              <button
-                class="toggle-media-upload"
-                on:click={() => (question.showMediaUpload = !question.showMediaUpload)}
-              >
-                {question.showMediaUpload ? 'Hide' : 'Add'} Media
-              </button>
-
-              {#if question.showMediaUpload}
-                <div class="media-input-container" transition:slide={{ axis: 'y' }}>
-                  <input
-                    type="file"
-                    accept="image/*,video/*"
-                    on:change={(e) => handleMediaUpload(e, question)}
-                  />
-                </div>
-              {/if}
-
-              {#if question.media}
-                <img src={question.media} alt="Uploaded media" class="media-preview" />
-              {/if}
-            </div>
-
-            <div class="question-action-buttons">
-              <button on:click={addQuestion} class="add-question-btn"> Add Question </button>
-
-              <button on:click={() => duplicateQuestion(question, index)}> Duplicate </button>
-              <button on:click={() => deleteQuestion(index)}> Delete </button>
             </div>
           </div>
-        {/each}
-      </section>
-    </div>
+        </section>
 
+        <section class="questions-section">
+          <h3>Questions</h3>
+          {#each assessment.questions as question, index (question.id)}
+            <div class="question-card" transition:slide={{ axis: 'y' }}>
+              <textarea placeholder="Enter question text" bind:value={question.question} required
+              ></textarea>
+
+              <div class="checkbox-group">
+                <label>
+                  <input type="checkbox" bind:checked={question.required} />
+                  <p>Required</p>
+                </label>
+                <label>
+                  <input type="checkbox" bind:checked={question.shuffleOptions} />
+                  <p>Shuffle Options</p>
+                </label>
+              </div>
+              <div class="question-type-points">
+                <select
+                  bind:value={question.type}
+                  class="question-type"
+                  on:change={() => updateQuestionType(question, question.type)}
+                >
+                  <option value="short_answer">Short Answer</option>
+                  <option value="essay">Essay</option>
+                  <option value="true_false">True/False</option>
+                  <option value="multiple_choice">Multiple Choice</option>
+                  <option value="ranking">Ranking</option>
+                  <option value="linear_scale">Linear Scale</option>
+                </select>
+                <input
+                  type="number"
+                  placeholder="Points"
+                  bind:value={question.points}
+                  min="1"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  class="points-input"
+                />
+              </div>
+
+              {#if question.type === 'short_answer'}
+                <input
+                  type="text"
+                  placeholder="Correct Answer"
+                  bind:value={question.correctAnswers[0]}
+                />
+              {/if}
+
+              {#if question.type === 'true_false'}
+                <div class="checkbox-group">
+                  <label>
+                    <input
+                      type="radio"
+                      name={`true_false_${question.id}`}
+                      value="true"
+                      bind:group={question.correctAnswers}
+                    />
+                    <p>True</p>
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name={`true_false_${question.id}`}
+                      value="false"
+                      bind:group={question.correctAnswers}
+                    />
+                    <p>False</p>
+                  </label>
+                </div>
+              {/if}
+
+              {#if question.type === 'multiple_choice'}
+                <div class="options-section">
+                  {#each question.options || [] as _option, optIndex}
+                    <div class="option-input" transition:slide={{ axis: 'y' }}>
+                      <input
+                        type="checkbox"
+                        checked={question.correctAnswers?.includes(optIndex)}
+                        on:change={() => {
+                          if (question.correctAnswers?.includes(optIndex)) {
+                            question.correctAnswers = question.correctAnswers.filter(
+                              (a) => a !== optIndex
+                            )
+                          } else {
+                            question.correctAnswers = [...(question.correctAnswers || []), optIndex]
+                          }
+                        }}
+                      />
+                      <input
+                        type="text"
+                        bind:value={question.options[optIndex]}
+                        placeholder={`Option ${optIndex + 1}`}
+                      />
+                      <button on:click={() => removeQuestionOption(question, optIndex)}>
+                        Remove
+                      </button>
+                    </div>
+                  {/each}
+                  <button on:click={() => addQuestionOption(question)}> Add Option </button>
+                </div>
+              {/if}
+
+              {#if question.type === 'essay'}
+                <textarea
+                  placeholder="Enter essay text"
+                  bind:value={question.correctAnswers[0]}
+                  required
+                ></textarea>
+              {/if}
+
+              {#if question.type === 'ranking'}
+                <div class="options-section">
+                  {#each question.options || [] as _option, optIndex}
+                    <div class="option-input" transition:slide={{ axis: 'y' }}>
+                      <input
+                        type="text"
+                        bind:value={question.options[optIndex]}
+                        placeholder={`Option ${optIndex + 1}`}
+                      />
+                      <input
+                        type="number"
+                        bind:value={question.correctAnswers[optIndex]}
+                        placeholder="Rank"
+                        min="1"
+                        max={(question.options || []).length}
+                        on:change={() => {
+                          question.correctAnswers =
+                            question.correctAnswers?.map((_, i) => i + 1) || []
+                          setupRankingQuestion(question)
+                        }}
+                      />
+                      <button on:click={() => removeQuestionOption(question, optIndex)}>
+                        Remove
+                      </button>
+                    </div>
+                  {/each}
+                  <button on:click={() => addQuestionOption(question)}> Add Option </button>
+                </div>
+              {/if}
+
+              {#if question.type === 'linear_scale'}
+                <div class="options-section">
+                  <div class="linear-scale-inputs">
+                    <label>
+                      Start:
+                      <input
+                        type="number"
+                        bind:value={question.linearScaleStart}
+                        min="0"
+                        max={question.linearScaleEnd || 10}
+                        on:change={() => setupLinearScale(question)}
+                      />
+                    </label>
+                    <label>
+                      End:
+                      <input
+                        type="number"
+                        bind:value={question.linearScaleEnd}
+                        min={(question.linearScaleStart || 0) + 1}
+                        max="10"
+                        on:change={() => setupLinearScale(question)}
+                      />
+                    </label>
+                    <label>
+                      Step:
+                      <input type="number" bind:value={question.linearScaleStep} min="1" max="5" />
+                    </label>
+                  </div>
+                  <div class="correct-answer-selection">
+                    <label for="linear-scale-answer">Correct Answer:</label>
+                    <select
+                      id="linear-scale-answer"
+                      bind:value={question.correctAnswers[0]}
+                      class="linear-scale-answer"
+                    >
+                      {#each Array.from({ length: (question.linearScaleEnd || 5) - (question.linearScaleStart || 1) + 1 }, (_, i) => (question.linearScaleStart || 1) + i) as value}
+                        <option>{value}</option>
+                      {/each}
+                    </select>
+                  </div>
+                </div>
+              {/if}
+
+              <div class="media-upload-section">
+                <button
+                  class="toggle-media-upload"
+                  on:click={() => (question.showMediaUpload = !question.showMediaUpload)}
+                >
+                  {question.showMediaUpload ? 'Hide' : 'Add'} Media
+                </button>
+
+                {#if question.showMediaUpload}
+                  <div class="media-input-container" transition:slide={{ axis: 'y' }}>
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      on:change={(e) => handleMediaUpload(e, question)}
+                    />
+                  </div>
+                {/if}
+
+                {#if question.media}
+                  <img src={question.media} alt="Uploaded media" class="media-preview" />
+                {/if}
+              </div>
+
+              <div class="question-action-buttons">
+                <button on:click={addQuestion} class="add-question-btn"> Add Question </button>
+
+                <button on:click={() => duplicateQuestion(question, index)}> Duplicate </button>
+                <button on:click={() => deleteQuestion(index)}> Delete </button>
+              </div>
+            </div>
+          {/each}
+        </section>
+      </div>
+    </div>
     {#if preview}
       <div class="preview-container" transition:slide={{ axis: 'x' }}>
         <h3>Preview</h3>
@@ -556,6 +564,20 @@
   .container {
     display: flex;
     gap: 1rem;
+  }
+
+  .assessment-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  @media (width > 1080px) {
+    .nav,
+    .container {
+      margin-inline: 10%;
+    }
   }
 
   .assessment-details {
@@ -682,8 +704,8 @@
     border: var(--border);
     background: var(--background);
     padding: 1rem;
-    width: auto;
-    min-width: 30%;
+    width: 100%;
+    max-width: 400px;
   }
 
   .modal {
@@ -786,5 +808,11 @@
     background: var(--background-solid);
     font-size: 1rem;
     color: var(--text);
+  }
+
+  .linear-scale-inputs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
   }
 </style>
