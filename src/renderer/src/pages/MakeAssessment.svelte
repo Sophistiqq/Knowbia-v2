@@ -9,7 +9,8 @@
     title: string
     description: string
     time_limit: number
-    shuffleQuestions: boolean
+    section: string
+    shuffle_questions: boolean
     questions: Question[]
   }
 
@@ -88,7 +89,8 @@
     title: 'Untitled Assessment',
     description: '',
     time_limit: 60,
-    shuffleQuestions: false,
+    shuffle_questions: false,
+    section: '',
     questions: []
   }
 
@@ -184,6 +186,7 @@
   // Save Assessment
   async function saveAssessment() {
     // Validation
+    console.log(assessment)
     if (!assessment.title.trim()) {
       toast('Please enter an assessment title', '2000', 'error')
       return
@@ -217,7 +220,8 @@
       title: 'Untitled Assessment',
       description: '',
       time_limit: 60,
-      shuffleQuestions: false,
+      section: '',
+      shuffle_questions: false,
       questions: []
     }
     addQuestion()
@@ -241,13 +245,39 @@
   $: if (assessment.questions.length === 0) {
     addQuestion()
   }
+
+  function distributeAssessment() {
+    // Distribute the assessment to Students
+    console.log('Distributing Assessment', assessment)
+
+    fetch('http://localhost:3000/assessments/distribute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(assessment)
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        toast(data.message, '2000', data.status)
+      })
+      .catch((error) => {
+        console.error(error)
+        toast('Failed to distribute assessment', '2000', 'error')
+      })
+  }
 </script>
 
 <main>
   <nav class="nav">
     <h1>Create an Assessment</h1>
     <div class="button-group">
-      <button title="Distribute the Assessment to Students">Distribute</button>
+      <button
+        title="Distribute the Assessment to Students"
+        on:click={() => {
+          distributeAssessment()
+        }}>Distribute</button
+      >
       <button title="Save Assessment" on:click={saveAssessment}><Save size="20" /></button>
       <button on:click={() => (resetConfirmation = !resetConfirmation)} title="Reset Assessment">
         <Refresh size="20" />
@@ -275,6 +305,13 @@
             bind:this={descriptionTextarea}
             on:input={adjustTextareaHeight}
           ></textarea>
+          <input
+            type="text"
+            id="section-field"
+            placeholder="Section"
+            bind:value={assessment.section}
+            required
+          />
           <div class="header-options">
             <div class="time-limit-wrapper">
               <label for="time_limit">Time Limit: </label>
@@ -290,7 +327,7 @@
               <input
                 id="shuffleQuestions"
                 type="checkbox"
-                bind:checked={assessment.shuffleQuestions}
+                bind:checked={assessment.shuffle_questions}
               />
             </div>
           </div>
@@ -814,5 +851,8 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;
+  }
+  #section-field {
+    width: fit-content;
   }
 </style>

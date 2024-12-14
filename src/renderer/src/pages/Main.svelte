@@ -1,6 +1,6 @@
 <script lang="ts">
   import { writable } from 'svelte/store'
-  import NavBar from '../components/Sidebar.svelte'
+  import SideBar from '../components/Sidebar.svelte'
 
   // Import all page components
   import Dashboard from './Dashboard.svelte'
@@ -32,7 +32,7 @@
 </script>
 
 <main>
-  <NavBar {navigateTo} />
+  <SideBar {navigateTo} />
   <!-- Dynamic component rendering -->
   <svelte:component this={pages[$currentPage]} />
 </main>

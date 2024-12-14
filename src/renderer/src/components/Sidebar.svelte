@@ -98,7 +98,7 @@
   </nav>
 {/if}
 
-<button class="menu-btn {hidden}" on:click={() => toggleMenu()}>
+<button class="menu-btn {hidden}" title="Dashboard" on:click={() => toggleMenu()}>
   {#if showMenu === 'nav-active'}
     <Keyboard_arrow_left size="50" />
   {:else}
@@ -155,8 +155,7 @@
       margin-top: 5rem;
     }
     .nav-active {
-      width: 70px;
-      max-width: 70px;
+      width: min(75px, 75px);
     }
   }
   .menu-btn {
@@ -164,7 +163,7 @@
     height: 100vh;
     display: grid;
     place-items: center;
-    background: linear-gradient(to right, var(--background), transparent);
+    background: transparent;
     cursor: pointer;
     z-index: 100;
     white-space: nowrap;

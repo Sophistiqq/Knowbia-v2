@@ -24,13 +24,13 @@
     title: string
     description: string
     time_limit: number
-    shuffleQuestions: boolean
+    shuffle_questions: boolean
     questions: Question[]
   }
 </script>
 
 <div class="p-assessment-header">
-  <h3>{assessment.title}</h3>
+  <h3>{assessment.title || 'Untitled Assessment'}</h3>
   <div class="separator"></div>
   <p>{@html assessment.description.replace(/\n/g, '<br>') || 'No Description'}</p>
   <div class="separator"></div>
