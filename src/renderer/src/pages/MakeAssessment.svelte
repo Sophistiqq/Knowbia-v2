@@ -96,7 +96,8 @@
 
   // UI State
   let resetConfirmation = false
-  let preview = true
+  let preview = false
+  $: showPreview = preview ? 'show' : ''
   let descriptionTextarea: HTMLTextAreaElement
 
   // Utility Functions
@@ -266,6 +267,97 @@
         toast('Failed to distribute assessment', '2000', 'error')
       })
   }
+
+  // export as JSON
+  function exportAsJSON() {
+    const data = JSON.stringify(assessment, null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${assessment.title}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // export as exportAsPDF
+  function exportAsPDF() {
+    const data = JSON.stringify(assessment, null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${assessment.title}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function loadFromJsonFile() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = async (e) => {
+          const content = e.target?.result as string
+          try {
+            const data = JSON.parse(content)
+            assessment = data
+            toast('Assessment loaded successfully', '2000', 'success')
+          } catch (error) {
+            console.error(error)
+            toast('Failed to load assessment', '2000', 'error')
+          }
+        }
+        reader.readAsText(file)
+      }
+    }
+    input.click()
+  }
+
+  let showDropdown = false
+  $: ExportDropdownClass = showDropdown ? 'show-dropdown' : ''
+
+  let showLoadDropdown = false
+  $: LoadDropdownClass = showLoadDropdown ? 'show-dropdown' : ''
+
+  let showListOfSaved = false
+
+  // ----- For loading saved assessments from the database -----
+
+  let listOfSavedAssessments = []
+
+  function loadSavedAssessment() {
+    fetch('http://localhost:3000/assessments/list')
+      .then((response) => response.json())
+      .then((data) => {
+        listOfSavedAssessments = data
+        showListOfSaved = true
+        console.log(data)
+      })
+      .catch((error) => {
+        console.error(error)
+        toast('Failed to load saved assessments', '2000', 'error')
+      })
+  }
+
+  // ----- For loading saved assessments from the database using the SavedList by id -----
+  function loadSavedAssessmentById(id: any) {
+    fetch(`http://localhost:3000/assessments/get/${id}`)
+      .then((response) => response.json())
+      .then((data) => {
+        assessment = data
+        assessment.questions = JSON.parse(data.questions)
+        showListOfSaved = false
+        toast('Assessment loaded successfully', '2000', 'success')
+      })
+      .catch((error) => {
+        console.error(error)
+        toast('Failed to load assessment', '2000', 'error')
+      })
+  }
 </script>
 
 <main>
@@ -278,7 +370,32 @@
           distributeAssessment()
         }}>Distribute</button
       >
-      <button title="Save Assessment" on:click={saveAssessment}><Save size="20" /></button>
+      <div class="export-dropdown-container">
+        <button on:click={() => (showDropdown = !showDropdown)}>Export</button>
+        <div class="dropdown-content {ExportDropdownClass}">
+          <button title="Export the assessment as a JSON file" on:click={exportAsJSON}
+            >Export as JSON</button
+          >
+          <button title="Currently Disabled" on:click={exportAsPDF} disabled>Export as PDF</button>
+        </div>
+      </div>
+
+      <button title="Save Assessment" on:click={saveAssessment}>Save</button>
+      <div class="load-dropdown-container">
+        <button on:click={() => (showLoadDropdown = !showLoadDropdown)}>Load</button>
+        <div class="dropdown-content {LoadDropdownClass}">
+          <button title="Load Assessment from JSON file" on:click={loadFromJsonFile}
+            >Load from JSON</button
+          >
+          <button
+            title="Load Assessment from the Database"
+            on:click={() => {
+              showListOfSaved = true
+              loadSavedAssessment()
+            }}>Load from Database</button
+          >
+        </div>
+      </div>
       <button on:click={() => (resetConfirmation = !resetConfirmation)} title="Reset Assessment">
         <Refresh size="20" />
       </button>
@@ -551,13 +668,11 @@
         </section>
       </div>
     </div>
-    {#if preview}
-      <div class="preview-container" transition:slide={{ axis: 'x' }}>
-        <h3>Preview</h3>
-        <pre>{JSON.stringify(assessment, null, 2)}</pre>
-        <AssessmentPreview {assessment} />
-      </div>
-    {/if}
+    <div class="preview-container {showPreview}" transition:slide={{ axis: 'x' }}>
+      <h3>Preview</h3>
+      <pre>{JSON.stringify(assessment, null, 2)}</pre>
+      <AssessmentPreview {assessment} />
+    </div>
   </div>
 
   {#if resetConfirmation}
@@ -572,14 +687,74 @@
       </div>
     </div>
   {/if}
+
+  {#if showListOfSaved}
+    <div class="modal" transition:fly>
+      <div class="modal-content">
+        <h3>Load Assessment</h3>
+        <p>Choose an assessment to load</p>
+        <div class="saved-assessments">
+          {#each listOfSavedAssessments as savedAssessment}
+            <div class="saved-assessment">
+              <button
+                on:click={() => {
+                  loadSavedAssessmentById(savedAssessment.id)
+                  console.log(savedAssessment.id)
+                }}
+              >
+                <h4>{savedAssessment.title}</h4>
+                <p>
+                  {savedAssessment.description.slice(0, 100)}{savedAssessment.description.length >
+                  100
+                    ? '...'
+                    : ''}
+                </p>
+              </button>
+            </div>
+          {/each}
+        </div>
+        <div class="button-group">
+          <button on:click={() => (showListOfSaved = false)}>Close</button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </main>
 
 <style lang="scss">
+  .saved-assessments {
+    display: flex;
+    flex-direction: column;
+    width: 50vw;
+  }
+
+  .saved-assessment {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    list-style: none;
+  }
+
+  .saved-assessment button {
+    width: 100%;
+    background: var(--background);
+    border: var(--border);
+    text-align: left;
+    background: none;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+  }
+
+  .saved-assessment h4 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .saved-assessment p {
+    margin: 0.5rem 0;
+  }
   main {
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: auto;
     margin: 0 auto;
     gap: 1rem;
     padding-right: 1rem;
@@ -591,7 +766,7 @@
     align-items: center;
     margin-bottom: 1rem;
     padding-top: 1rem;
-
+    z-index: 20;
     .button-group {
       display: flex;
       gap: 0.5rem;
@@ -738,11 +913,19 @@
   }
 
   .preview-container {
-    border: var(--border);
     background: var(--background);
-    padding: 1rem;
+    width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    border: none;
+    transition:
+      width 0.5s,
+      padding 0.5s;
+  }
+  .show {
+    border: var(--border);
     width: 100%;
-    max-width: 400px;
+    padding: 1rem;
   }
 
   .modal {
@@ -756,6 +939,7 @@
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(5px);
+    z-index: 100;
   }
 
   .modal-content {
@@ -854,5 +1038,51 @@
   }
   #section-field {
     width: fit-content;
+  }
+
+  .export-dropdown-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    button {
+      padding: 1rem;
+      cursor: pointer;
+      background: var(--background);
+      border: var(--border);
+      &:hover {
+        background: var(--hover);
+      }
+    }
+  }
+
+  .dropdown-content {
+    position: absolute;
+    height: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    top: 110%;
+    right: 0;
+    transition: height 0.2s;
+  }
+
+  .show-dropdown {
+    height: 100%;
+    background: var(--background);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .load-dropdown-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    button {
+      padding: 1rem;
+      cursor: pointer;
+      background: var(--background);
+      border: var(--border);
+      &:hover {
+        background: var(--hover);
+      }
+    }
   }
 </style>

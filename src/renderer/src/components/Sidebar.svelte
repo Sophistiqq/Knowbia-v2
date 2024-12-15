@@ -169,6 +169,7 @@
     white-space: nowrap;
     overflow: hidden;
     border: none;
+    z-index: 50;
   }
   .hidden {
     left: -10rem;
