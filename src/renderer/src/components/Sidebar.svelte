@@ -122,9 +122,9 @@
     box-shadow: 0 0 1rem 0 rgba(150, 150, 150, 0.1);
     float: left;
     flex-direction: column;
-    transition: width 0.3s;
     position: relative;
     border-right: 2px solid rgba(150, 150, 150, 0.1);
+    max-width: 15vw;
     .menu-header {
       width: 100%;
       display: flex;
@@ -146,16 +146,17 @@
     }
   }
   .nav-active {
-    width: 30rem;
-    max-width: 30rem;
+    width: 30vw;
+    white-space: nowrap;
   }
 
   @media (max-width: 1080px) {
-    .nav {
+    .nav-buttons:first-child {
       margin-top: 5rem;
     }
     .nav-active {
       width: min(75px, 75px);
+      max-width: 75px;
     }
   }
   .menu-btn {

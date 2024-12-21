@@ -1,5 +1,5 @@
 {
-  "name": "knowbia-desktop",
+  "name": "Knowbia-Desktop",
   "version": "2.0.0",
   "description": "An Electron application with Svelte and TypeScript",
   "main": "./out/main/index.js",

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Refresh, Save, Remove_red_eye } from 'svelte-google-materialdesign-icons'
+  import { Refresh, Remove_red_eye } from 'svelte-google-materialdesign-icons'
   import { toast } from '../utils/Toast'
   import { fly, slide } from 'svelte/transition'
   import AssessmentPreview from '../components/AssessmentPreview.svelte'
@@ -350,6 +350,7 @@
       .then((data) => {
         assessment = data
         assessment.questions = JSON.parse(data.questions)
+        assessment.shuffle_questions = data.shuffle_questions ? true : false
         showListOfSaved = false
         toast('Assessment loaded successfully', '2000', 'success')
       })
@@ -668,7 +669,7 @@
         </section>
       </div>
     </div>
-    <div class="preview-container {showPreview}" transition:slide={{ axis: 'x' }}>
+    <div class="preview-container {showPreview}">
       <h3>Preview</h3>
       <pre>{JSON.stringify(assessment, null, 2)}</pre>
       <AssessmentPreview {assessment} />
