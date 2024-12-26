@@ -693,7 +693,9 @@
     <div class="modal" transition:fly>
       <div class="modal-content">
         <h3>Load Assessment</h3>
-        <p>Choose an assessment to load</p>
+        <p>
+          {listOfSavedAssessments.length === 0 ? 'No saved Assessment' : 'Choose an Assessment'}
+        </p>
         <div class="saved-assessments">
           {#each listOfSavedAssessments as savedAssessment}
             <div class="saved-assessment">
