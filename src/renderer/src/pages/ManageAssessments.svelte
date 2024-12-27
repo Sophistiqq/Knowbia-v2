@@ -57,6 +57,7 @@
   }
 
   async function unrestrict(id: any) {
+    console.log(id)
     const res = await fetch(`http://localhost:3000/control/unrestrict/${id}`, {
       method: 'POST'
     })
@@ -82,6 +83,7 @@
               <div class="detail">
                 <h3>{assessment.title}</h3>
                 <p>{assessment.description || 'No description'}</p>
+                <p>{assessment.section}</p>
               </div>
             </button>
             <button
@@ -124,11 +126,14 @@
           <div class="section">
             <button class="details">
               <div class="detail">
-                <h3>{student.name}</h3>
-                <p>{student.reason}</p>
+                <h3>{student.student_number}</h3>
+                <p><b>{student.student_name}</b></p>
+                <p>{student.reason.toUpperCase()}</p>
               </div>
             </button>
-            <button class="btns" on:click={() => unrestrict(student.id)}>Unrestrict</button>
+            <button class="btns" on:click={() => unrestrict(student.student_number)}
+              >Unrestrict</button
+            >
           </div>
         {/each}
       </div>
