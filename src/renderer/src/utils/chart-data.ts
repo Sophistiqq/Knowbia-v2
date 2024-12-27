@@ -21,6 +21,10 @@ export const data = {
 
 export const options = {
   responsive: true,
+  maintainAspectRatio: true,
+  onResize: function (chart: any) {
+    chart.resize(700, 600)
+  },
   plugins: {
     legend: {
       labels: {
