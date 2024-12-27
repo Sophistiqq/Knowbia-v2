@@ -127,8 +127,7 @@
     width: 100%;
     background: var(--background);
   }
-  input[type='radio'],
-  input[type='checkbox'] {
+  input[type='radio'] {
     width: fit-content;
   }
   #q {

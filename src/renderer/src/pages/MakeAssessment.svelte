@@ -60,11 +60,11 @@
     if (question.type === 'ranking') {
       // Convert correctAnswers to numbers
       question.correctAnswers = question.correctAnswers?.map(Number) || []
-
       // Check for unique ranks
       const uniqueRanks = new Set(question.correctAnswers)
       if (uniqueRanks.size !== question.correctAnswers.length) {
-        toast('Ranks must be unique and consecutive starting from 1', '2000', 'warning')
+        toast('Ranks must be unique', '2000', 'warning')
+        question.correctAnswers = []
       }
     }
   }
@@ -148,7 +148,6 @@
     if (question.type === 'multiple_choice' || question.type === 'ranking') {
       question.options = [...(question.options || []), '']
       if (question.type === 'ranking') {
-        question.correctAnswers = question.correctAnswers?.map((_, i) => i + 1) || []
       }
       assessment = { ...assessment }
     }
@@ -187,7 +186,6 @@
   // Save Assessment
   async function saveAssessment() {
     // Validation
-    console.log(assessment)
     if (!assessment.title.trim()) {
       toast('Please enter an assessment title', '2000', 'error')
       return
@@ -209,6 +207,8 @@
 
       const data = await response.json()
       toast(data.message, '2000', data.status)
+      console.log(data.id)
+      return data.id
     } catch (err) {
       console.error(err)
       toast('Failed to save assessment', '2000', 'error')
@@ -247,16 +247,16 @@
     addQuestion()
   }
 
-  function distributeAssessment() {
+  async function distributeAssessment() {
     // Distribute the assessment to Students
     console.log('Distributing Assessment', assessment)
-
+    const id = await saveAssessment()
     fetch('http://localhost:3000/assessments/distribute', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(assessment)
+      body: JSON.stringify({ ...assessment, id })
     })
       .then((response) => response.json())
       .then((data) => {
@@ -359,6 +359,15 @@
         toast('Failed to load assessment', '2000', 'error')
       })
   }
+  // escape key to close the modals and close the dropdowns
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      showListOfSaved = false
+      resetConfirmation = false
+      showDropdown = false
+      showLoadDropdown = false
+    }
+  })
 </script>
 
 <main>
@@ -478,8 +487,10 @@
                   <option value="essay">Essay</option>
                   <option value="true_false">True/False</option>
                   <option value="multiple_choice">Multiple Choice</option>
+                  <!-- Exptremely buggy and not working properly
                   <option value="ranking">Ranking</option>
                   <option value="linear_scale">Linear Scale</option>
+                  -->
                 </select>
                 <input
                   type="number"
@@ -575,6 +586,7 @@
                         type="number"
                         bind:value={question.correctAnswers[optIndex]}
                         placeholder="Rank"
+                        id="rank"
                         min="1"
                         max={(question.options || []).length}
                         on:change={() => {
@@ -921,9 +933,6 @@
     overflow: hidden;
     white-space: nowrap;
     border: none;
-    transition:
-      width 0.5s,
-      padding 0.5s;
   }
   .show {
     border: var(--border);
@@ -1087,5 +1096,8 @@
         background: var(--hover);
       }
     }
+  }
+  #rank {
+    width: 10ch;
   }
 </style>
