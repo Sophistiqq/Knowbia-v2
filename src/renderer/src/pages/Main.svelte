@@ -6,7 +6,7 @@
   import Dashboard from './Dashboard.svelte'
   import MakeAssessment from './MakeAssessment.svelte'
   import ManageAssessments from './ManageAssessments.svelte'
-  import ManageUsers from './ManageUsers.svelte'
+  import ManageStudents from './ManageStudents.svelte'
   import Settings from './Settings.svelte'
 
   // Define page configuration
@@ -14,7 +14,7 @@
     Dashboard,
     MakeAssessment,
     ManageAssessments,
-    ManageUsers,
+    ManageStudents,
     Settings
   }
 

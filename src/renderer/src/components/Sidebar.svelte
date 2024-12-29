@@ -8,7 +8,8 @@
     Create,
     Dashboard,
     Manage_accounts,
-    Monitor_heart
+    Monitor_heart,
+    Refresh
   } from 'svelte-google-materialdesign-icons'
   let showMenu = localStorage.getItem('showMenu') || 'nav-active'
   let screenWidth = window.innerWidth
@@ -42,9 +43,13 @@
       toggleMenu()
     }
     if (e.ctrlKey && e.key >= '1' && e.key <= '5') {
-      const page = ['Dashboard', 'MakeAssessment', 'ManageAssessments', 'ManageUsers', 'Settings'][
-        parseInt(e.key) - 1
-      ]
+      const page = [
+        'Dashboard',
+        'MakeAssessment',
+        'ManageAssessments',
+        'ManageStudents',
+        'Settings'
+      ][parseInt(e.key) - 1]
       navigateTo(page)
     }
   })
@@ -68,8 +73,8 @@
       <button class="btn" on:click={() => navigateTo('ManageAssessments')}>
         <Monitor_heart size="32" variation="filled" /> <span>Manage Assessments</span>
       </button>
-      <button class="btn" on:click={() => navigateTo('ManageUsers')}>
-        <Manage_accounts size="32" variation="filled" /> <span>Manage Users</span>
+      <button class="btn" on:click={() => navigateTo('ManageStudents')}>
+        <Manage_accounts size="32" variation="filled" /> <span>Manage Students</span>
       </button>
       <button class="btn" on:click={() => navigateTo('Settings')}>
         <Settings size="32" variation="filled" /> <span>Settings</span>
@@ -88,7 +93,7 @@
       <button class="btn" on:click={() => navigateTo('ManageAssessments')}>
         <Monitor_heart size="32" variation="filled" />
       </button>
-      <button class="btn" on:click={() => navigateTo('ManageUsers')}>
+      <button class="btn" on:click={() => navigateTo('ManageStudents')}>
         <Manage_accounts size="32" variation="filled" />
       </button>
       <button class="btn" on:click={() => navigateTo('Settings')}>
