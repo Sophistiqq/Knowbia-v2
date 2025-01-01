@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
   import { Close } from 'svelte-google-materialdesign-icons'
   import { fly } from 'svelte/transition'
+  import { toast } from '../utils/Toast'
+  import { checkSudo, confirmSudo } from '../utils/Sudo'
   // Manage Students Page, where the teacher can manage the students
   type student = {
     student_number: string
@@ -64,9 +66,22 @@
 
   onMount(() => {
     fetchStudents()
+    sudoTimeout = setInterval(() => {
+      if (!checkSudo() && modal) {
+        modal = false
+        toast('Sudo mode expired. Please authenticate again.', 2000, 'error')
+      }
+    }, 60000)
   })
+  // Clean up on component destruction
+  onDestroy(() => {
+    if (sudoTimeout) {
+      clearInterval(sudoTimeout)
+    }
+  })
+  let sudo = false
 
-  let modal = true
+  let modal = false
 
   // esc key to close the modal
   window.addEventListener('keydown', (e) => {
@@ -74,6 +89,140 @@
       modal = false
     }
   })
+
+  let studentData = {
+    student_number: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    section: ''
+  }
+
+  async function submitRegister() {
+    requireSudo(async () => {
+      if (
+        studentData.student_number === '' ||
+        studentData.first_name === '' ||
+        studentData.last_name === '' ||
+        studentData.email === '' ||
+        studentData.password === '' ||
+        studentData.section === ''
+      ) {
+        toast('Please fill up all fields', 2000, 'error')
+        return
+      }
+
+      const res = await fetch('http://localhost:3000/students/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(studentData)
+      })
+      const data = await res.json()
+
+      toast(data.message, 2000, data.status)
+      fetchStudents()
+      modal = false
+    })
+  }
+  async function submitEdit() {
+    requireSudo(async () => {
+      if (
+        studentData.student_number === '' ||
+        studentData.first_name === '' ||
+        studentData.last_name === '' ||
+        studentData.email === '' ||
+        studentData.section === ''
+      ) {
+        toast('Please fill up all fields', 'error')
+        return
+      }
+
+      const res = await fetch('http://localhost:3000/students/edit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(studentData)
+      })
+      const data = await res.json()
+
+      toast(data.message, 2000, data.status)
+      fetchStudents()
+      modal = false
+    })
+  }
+
+  let modalType = ''
+  function requireSudo(action: () => void) {
+    if (checkSudo()) {
+      action()
+    } else {
+      sudo = true // Show sudo modal
+      pendingAction = action // Store the action to execute after sudo confirmation
+    }
+  }
+
+  function openModal(type: 'add' | 'edit', student?: student) {
+    requireSudo(() => {
+      modal = true
+      if (type === 'add') {
+        modalType = 'add'
+        studentData = {
+          student_number: '',
+          first_name: '',
+          last_name: '',
+          email: '',
+          password: '',
+          section: ''
+        }
+      } else {
+        modalType = 'edit'
+        studentData = { ...student }
+        studentData.password = ''
+      }
+    })
+  }
+
+  async function submitDelete() {
+    requireSudo(async () => {
+      const res = await fetch('http://localhost:3000/students/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(studentData)
+      })
+      const data = await res.json()
+
+      toast(data.message, 2000, data.status)
+      fetchStudents()
+      modal = false
+      deleteConfirmation = false
+    })
+  }
+
+  let deleteConfirmation = false
+
+  // Sudo Mode
+
+  let sudoPassword = ''
+  let pendingAction: (() => void) | undefined
+  let sudoTimeout: NodeJS.Timeout
+  async function submitSudo() {
+    const res = await confirmSudo(sudoPassword)
+    if (res.status === 'success') {
+      sudo = false
+      sudoPassword = ''
+      if (pendingAction) {
+        pendingAction()
+        pendingAction = undefined
+      }
+    }
+    toast(res.message, 2000, res.status)
+  }
 </script>
 
 <main>
@@ -99,7 +248,7 @@
         {/if}
       </div>
       <button class="refresh-btn" on:click={fetchStudents}> Refresh </button>
-      <button class="add-student" on:click={() => (modal = !modal)} title="Register a Student"
+      <button class="add-student" on:click={() => openModal('add')} title="Register a Student"
         >Add</button
       >
     </div>
@@ -115,7 +264,7 @@
       </thead>
       <tbody>
         {#each filteredStudents.slice(0, rowsPerPage) as student}
-          <tr>
+          <tr on:click={() => openModal('edit', student)}>
             <td>{student.student_number}</td>
             <td>{student.first_name}</td>
             <td>{student.last_name}</td>
@@ -132,7 +281,7 @@
   <div class="modal" transition:fly>
     <div class="modal-content">
       <button class="close" on:click={() => (modal = !modal)}><Close /></button>
-      <h2>Register a Student</h2>
+      <h2>{modalType === 'add' ? 'Register Student' : 'Edit Student'}</h2>
       <form>
         <div class="input-field">
           <label for="student_number">Student Number</label>
@@ -140,31 +289,105 @@
             type="text"
             id="student_number"
             name="student_number"
+            bind:value={studentData.student_number}
             placeholder="e.g. 21-00564"
           />
         </div>
         <div class="input-field">
           <label for="first_name">First Name</label>
-          <input type="text" id="first_name" name="first_name" placeholder="e.g. Juan" />
+          <input
+            type="text"
+            id="first_name"
+            name="first_name"
+            bind:value={studentData.first_name}
+            placeholder="e.g. Juan"
+          />
         </div>
         <div class="input-field">
           <label for="last_name">Last Name</label>
-          <input type="text" id="last_name" name="last_name" placeholder="e.g. Dela Paz" />
+          <input
+            type="text"
+            id="last_name"
+            name="last_name"
+            bind:value={studentData.last_name}
+            placeholder="e.g. Dela Paz"
+          />
         </div>
         <div class="input-field">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" placeholder="e.g. example@gmail.com" />
+          <input
+            type="email"
+            id="email"
+            name="email"
+            bind:value={studentData.email}
+            placeholder="e.g. example@gmail.com"
+          />
         </div>
         <div class="input-field">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" placeholder="e.g. password123" />
+          <input
+            type="password"
+            id="password"
+            name="password"
+            bind:value={studentData.password}
+            placeholder={modalType === 'add' ? 'e.g. password123' : 'Enter new password'}
+          />
         </div>
         <div class="input-field">
           <label for="section">Section</label>
-          <input type="text" id="section" name="section" placeholder="e.g. 4B" />
+          <input
+            type="text"
+            id="section"
+            name="section"
+            bind:value={studentData.section}
+            placeholder="e.g. 4B"
+          />
         </div>
-        <button type="submit">Register</button>
       </form>
+
+      <div class="buttons-wrapper">
+        {#if modalType === 'add'}
+          <button on:click={submitRegister}>Register</button>
+        {:else}
+          <button on:click={() => (deleteConfirmation = true)}>Delete</button>
+          <button on:click={submitEdit}>Update</button>
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if deleteConfirmation}
+  <div class="modal" transition:fly>
+    <div class="modal-content">
+      <button class="close" on:click={() => (deleteConfirmation = !deleteConfirmation)}
+        ><Close /></button
+      >
+      <h2>Delete Student</h2>
+      <p>Are you sure you want to delete this student?</p>
+      <div class="buttons-wrapper">
+        <button on:click={submitDelete}>Yes</button>
+        <button on:click={() => (deleteConfirmation = false)}>No</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if sudo}
+  <div class="modal" transition:fly>
+    <div class="modal-content">
+      <button class="close" on:click={() => (sudo = false)}><Close /></button>
+      <h2>Sudo Mode</h2>
+      <p>Enter the password to enable sudo mode</p>
+      <form>
+        <div class="input-field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" bind:value={sudoPassword} />
+        </div>
+      </form>
+      <div class="buttons-wrapper">
+        <button on:click={submitSudo}>Enable</button>
+      </div>
     </div>
   </div>
 {/if}
@@ -295,6 +518,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    backdrop-filter: blur(5px);
   }
   .modal-content {
     background-color: var(--background);
@@ -336,5 +560,17 @@
     background-color: var(--background);
     color: var(--text);
     cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:active {
+      background-color: var(--active);
+      transform: scale(0.95);
+    }
+  }
+
+  .buttons-wrapper {
+    display: flex;
+    margin-top: 1rem;
+    gap: 1rem;
   }
 </style>
