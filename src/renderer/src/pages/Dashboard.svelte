@@ -1,22 +1,52 @@
 <script lang="ts">
-  import { Line } from 'svelte-chartjs'
-  import { data, options } from '../utils/chart-data'
+  import { Line, Bar } from 'svelte-chartjs'
+  import { options } from '../utils/chart-data'
   import {
     Chart as ChartJS,
     Title,
     Tooltip,
     Legend,
     LineElement,
+    BarElement,
     LinearScale,
     PointElement,
     CategoryScale
   } from 'chart.js'
   import { onMount } from 'svelte'
-  ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale)
+  ChartJS.register(
+    Title,
+    Tooltip,
+    Legend,
+    LineElement,
+    BarElement,
+    LinearScale,
+    PointElement,
+    CategoryScale
+  )
+  let tab = 'line'
+
+  function switchTab(selectedTab: string) {
+    tab = selectedTab
+  }
+
   onMount(() => {
     fetchData()
+    fetchAverageOverTime()
+    fetchAssessmentScores()
   })
-
+  let averageOverTime: any = {
+    labels: [],
+    values: [],
+    datasets: [
+      {
+        label: 'Average Score',
+        data: [],
+        fill: false,
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+      }
+    ]
+  }
   type dashboardData = {
     savedAssessments: any
     students: any
@@ -38,6 +68,35 @@
     const data = await res.json()
     dashboardData = data
     console.table(dashboardData.topPerformers)
+  }
+
+  async function fetchAverageOverTime() {
+    const response = await fetch('http://localhost:3000/api/scores/average-over-time')
+    const data = await response.json()
+    averageOverTime.labels = data.labels
+    averageOverTime.datasets[0].data = data.values
+    console.log(averageOverTime)
+  }
+
+  let assessmentScores: any = {
+    labels: [],
+    values: [],
+    datasets: [
+      {
+        label: 'Assessment Scores',
+        data: [],
+        fill: false,
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+      }
+    ]
+  }
+
+  async function fetchAssessmentScores() {
+    const response = await fetch('http://localhost:3000/api/scores/distribution')
+    const data = await response.json()
+    assessmentScores.labels = data.labels
+    assessmentScores.datasets[0].data = data.values
   }
 </script>
 
@@ -61,11 +120,23 @@
       <p>{dashboardData.completedAssessments}</p>
     </div>
   </div>
+  <div class="tabs">
+    <button on:click={() => switchTab('line')} class:active={tab === 'line'}>Line Chart</button>
+    <button on:click={() => switchTab('bar')} class:active={tab === 'bar'}>Bar Chart</button>
+  </div>
   <div class="charts">
-    <div class="chart">
-      <h3>Scores</h3>
-      <Line {data} {options} />
-    </div>
+    {#if tab === 'line'}
+      <div class="chart">
+        <h3>Assessment Progress</h3>
+        <Line data={averageOverTime} {options} />
+      </div>
+    {/if}
+    {#if tab === 'bar'}
+      <div class="chart">
+        <h3>Assessment Progress</h3>
+        <Bar data={assessmentScores} {options} />
+      </div>
+    {/if}
   </div>
   <div class="top-performers">
     <h3>Top Performers</h3>
@@ -121,6 +192,22 @@
       margin-block: 1.25rem;
     }
   }
+  .tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+    button {
+      padding: 0.5rem 1rem;
+      margin: 0 0.5rem;
+      border: none;
+      background-color: var(--background);
+      cursor: pointer;
+      &.active {
+        font-weight: bold;
+        border-bottom: 2px solid var(--primary);
+      }
+    }
+  }
   .charts {
     display: flex;
     justify-content: space-around;
@@ -167,21 +254,13 @@
       width: 100%;
       border-collapse: collapse;
       .headers {
-        background-color: var(--primary);
-        color: var(--on-primary);
-      }
-      .student {
-        &:nth-child(even) {
-          background-color: var(--surface);
-        }
+        background-color: var(--background);
       }
       th,
       td {
         padding: 0.75rem;
         text-align: left;
         border-bottom: var(--border);
-        font-size: 1rem;
-        font-weight: normal;
       }
       th {
         font-weight: bold;

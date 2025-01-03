@@ -67,6 +67,17 @@
   }
 
   let modal_stop = false
+
+  // Keyboard shortcuts enter to press the yes button
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      if (modal) {
+        deleteAssessment(selectedAssessment.id)
+      } else if (modal_stop) {
+        stopAssessment(selectedAssessment)
+      }
+    }
+  })
 </script>
 
 <main>

@@ -184,7 +184,7 @@
   }
 
   // Save Assessment
-  async function saveAssessment() {
+  async function saveAssessment(time: any) {
     // Validation
     if (!assessment.title.trim()) {
       toast('Please enter an assessment title', '2000', 'error')
@@ -196,6 +196,11 @@
       return
     }
 
+    if (!assessment.section.trim()) {
+      toast('Please enter a section', '2000', 'error')
+      return
+    }
+
     try {
       const response = await fetch('http://localhost:3000/assessments/save', {
         method: 'POST',
@@ -204,11 +209,10 @@
         },
         body: JSON.stringify(assessment)
       })
-
       const data = await response.json()
-      toast(data.message, '2000', data.status)
-      console.log(data.id)
-      return data.id
+      toast(data.message, time, data.status)
+      console.table(data)
+      return data.id || null
     } catch (err) {
       console.error(err)
       toast('Failed to save assessment', '2000', 'error')
@@ -234,7 +238,7 @@
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 's') {
       e.preventDefault()
-      saveAssessment()
+      saveAssessment('2000')
     }
     if (e.ctrlKey && e.key === 'p') {
       e.preventDefault()
@@ -249,22 +253,26 @@
 
   async function distributeAssessment() {
     // Distribute the assessment to Students
-    console.log('Distributing Assessment', assessment)
-    const id = await saveAssessment()
+    let id = await saveAssessment('none')
+    if (!id) {
+      toast('Failed to save assessment, cannot distribute', '2000', 'error')
+      return
+    }
     fetch('http://localhost:3000/assessments/distribute', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ ...assessment, id })
+      body: JSON.stringify({ ...assessment, id: id.id })
     })
       .then((response) => response.json())
       .then((data) => {
         toast(data.message, '2000', data.status)
+        console.log(data)
       })
       .catch((error) => {
         console.error(error)
-        toast('Failed to distribute assessment', '2000', 'error')
+        toast(error.message, '2000', 'error')
       })
   }
 
