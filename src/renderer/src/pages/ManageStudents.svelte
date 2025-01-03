@@ -223,6 +223,10 @@
     }
     toast(res.message, 2000, res.status)
   }
+
+  function prevent(e: Event) {
+    e.preventDefault()
+  }
 </script>
 
 <main>
@@ -379,7 +383,7 @@
       <button class="close" on:click={() => (sudo = false)}><Close /></button>
       <h2>Sudo Mode</h2>
       <p>Enter the password to enable sudo mode</p>
-      <form>
+      <form on:submit={prevent}>
         <div class="input-field">
           <label for="password">Password</label>
           <input type="password" id="password" name="password" bind:value={sudoPassword} />
@@ -434,6 +438,7 @@
       border: 1px solid var(--hover);
       overflow: hidden;
       text-overflow: ellipsis;
+      cursor: pointer;
     }
     tr:nth-child(even) {
       background-color: var(--hover);

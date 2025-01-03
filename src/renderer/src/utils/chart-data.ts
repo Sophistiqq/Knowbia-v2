@@ -1,3 +1,8 @@
+// Fetch data from API and return it as an object, which will be used in the chart component.
+
+// Data for the chart
+
+
 
 export const data = {
   labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
