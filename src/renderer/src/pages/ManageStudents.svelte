@@ -409,7 +409,7 @@
     }
     .container {
       padding: 0;
-      margin-inline: 10%;
+      margin-inline: 5%;
     }
   }
   .container {

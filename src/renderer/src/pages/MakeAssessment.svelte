@@ -198,61 +198,39 @@
       if (showToast) toast('Please enter a section', '2000', 'error')
       return null
     }
-
-    try {
-      const response = await fetch('http://localhost:3000/assessments/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(assessment)
-      })
-
-      if (!response.ok) {
-        const errorDetails = await response.text()
-        console.error('Save assessment server error:', errorDetails)
-        if (showToast) toast('Failed to save assessment', '2000', 'error')
-        throw new Error('Server responded with an error')
-      }
-
-      const data = await response.json()
-
-      if (!data.id) {
-        console.error('Invalid server response, no ID returned:', data)
-        if (showToast) toast('Failed to save assessment', '2000', 'error')
-        throw new Error('No ID returned from server')
-      }
-
-      if (showToast) toast('Assessment saved successfully!', '2000', 'success')
-      console.log('Assessment saved with ID:', data.id)
-      return data.id
-    } catch (err) {
-      console.error('Save assessment error:', err)
-      if (showToast) toast('Failed to save assessment', '2000', 'error')
-      return null
-    }
+    const res = await fetch('http://localhost:3000/assessments/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(assessment)
+    })
+    const data = await res.json()
+    toast(data.message, '2000', data.status)
+    console.log('Assessment saved:', data)
+    return data.id
   }
 
+  // Distribute Assessment
   async function distributeAssessment() {
     try {
-      const savedData = await saveAssessment(false)
-
-      if (!savedData || typeof savedData.id !== 'number') {
-        toast('Failed to save assessment, cannot distribute', '2000', 'error')
+      const id = await saveAssessment(false)
+      assessment.id = id.id === undefined ? assessment.id : id.id
+      console.log('Assessment ID:', assessment.id)
+      if (id === undefined || id === null) {
+        toast('Failed to save assessment. Distribution aborted.', '2000', 'error')
         return
       }
-
       const response = await fetch('http://localhost:3000/assessments/distribute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          ...assessment,
-          id: savedData.id // Extract `id` as a number
+          ...assessment
         })
       })
-
+      console.log('Assessment:', assessment)
       if (!response.ok) {
         const errorDetails = await response.json()
         console.error('Distribute assessment server error:', errorDetails)
@@ -835,7 +813,7 @@
   @media (width > 1080px) {
     .nav,
     .container {
-      margin-inline: 10%;
+      margin-inline: 5%;
     }
   }
 

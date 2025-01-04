@@ -83,8 +83,9 @@
       {
         label: 'Assessment Scores',
         data: [],
-        fill: false,
+        fill: true,
         borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgb(75, 192, 192)',
         tension: 0.1
       }
     ]
@@ -119,8 +120,9 @@
     </div>
   </div>
   <div class="tabs">
-    <button on:click={() => switchTab('line')} class:active={tab === 'line'}>Line Chart</button>
-    <button on:click={() => switchTab('bar')} class:active={tab === 'bar'}>Bar Chart</button>
+    <button on:click={() => switchTab('line')} class:active={tab === 'line'}>Average Scores</button>
+    <button on:click={() => switchTab('bar')} class:active={tab === 'bar'}>Assessment Scores</button
+    >
   </div>
   <div class="charts">
     {#if tab === 'line'}

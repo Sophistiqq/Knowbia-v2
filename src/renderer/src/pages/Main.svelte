@@ -7,15 +7,14 @@
   import MakeAssessment from './MakeAssessment.svelte'
   import ManageAssessments from './ManageAssessments.svelte'
   import ManageStudents from './ManageStudents.svelte'
-  import Settings from './Settings.svelte'
-
+  import AssessmentResults from './AssessmentResults.svelte'
   // Define page configuration
   const pages = {
     Dashboard,
     MakeAssessment,
     ManageAssessments,
     ManageStudents,
-    Settings
+    AssessmentResults
   }
 
   // Create a store for current page

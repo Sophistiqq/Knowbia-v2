@@ -23,14 +23,9 @@
   }
 }
 
-
-
-
-
 body {
   background-color: black;
 }
-
 
 body::after {
   content: "";

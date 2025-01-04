@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SettingsModal from '../pages/Settings.svelte'
   import { onMount } from 'svelte'
   import { onDestroy } from 'svelte'
   import {
@@ -9,7 +10,7 @@
     Dashboard,
     Manage_accounts,
     Monitor_heart,
-    Refresh
+    Menu_book
   } from 'svelte-google-materialdesign-icons'
   let showMenu = localStorage.getItem('showMenu') || 'nav-active'
   let screenWidth = window.innerWidth
@@ -42,17 +43,32 @@
     if (e.ctrlKey && e.key === 'n') {
       toggleMenu()
     }
-    if (e.ctrlKey && e.key >= '1' && e.key <= '5') {
+    if (e.ctrlKey && e.key >= '1' && e.key <= '6') {
       const page = [
         'Dashboard',
         'MakeAssessment',
         'ManageAssessments',
         'ManageStudents',
-        'Settings'
+        'AssessmentResults'
       ][parseInt(e.key) - 1]
       navigateTo(page)
     }
   })
+  let modalSettings = false
+  function openSettings() {
+    modalSettings = true
+  }
+  document.onkeydown = (e) => {
+    if (e.key === 'Escape') {
+      modalSettings = false
+    }
+  }
+
+  document.onclick = (e) => {
+    if (e.target === document.querySelector('.modal')) {
+      modalSettings = false
+    }
+  }
 </script>
 
 {#if screenWidth > 1080}
@@ -73,10 +89,13 @@
       <button class="btn" on:click={() => navigateTo('ManageAssessments')}>
         <Monitor_heart size="32" variation="filled" /> <span>Manage Assessments</span>
       </button>
+      <button class="btn" on:click={() => navigateTo('AssessmentResults')}>
+        <Menu_book size="32" variation="filled" /> <span>Assessment Results</span>
+      </button>
       <button class="btn" on:click={() => navigateTo('ManageStudents')}>
         <Manage_accounts size="32" variation="filled" /> <span>Manage Students</span>
       </button>
-      <button class="btn" on:click={() => navigateTo('Settings')}>
+      <button class="btn" on:click={() => openSettings()}>
         <Settings size="32" variation="filled" /> <span>Settings</span>
       </button>
     </div>
@@ -93,10 +112,13 @@
       <button class="btn" on:click={() => navigateTo('ManageAssessments')}>
         <Monitor_heart size="32" variation="filled" />
       </button>
+      <button class="btn" on:click={() => navigateTo('AssessmentResults')}>
+        <Menu_book size="32" variation="filled" />
+      </button>
       <button class="btn" on:click={() => navigateTo('ManageStudents')}>
         <Manage_accounts size="32" variation="filled" />
       </button>
-      <button class="btn" on:click={() => navigateTo('Settings')}>
+      <button class="btn" on:click={() => openSettings()}>
         <Settings size="32" variation="filled" />
       </button>
     </div>
@@ -110,6 +132,12 @@
     <Keyboard_arrow_right size="50" />
   {/if}
 </button>
+
+{#if modalSettings}
+  <div class="modal">
+    <SettingsModal />
+  </div>
+{/if}
 
 <style lang="scss">
   .separator {
@@ -206,5 +234,15 @@
         background-color: var(--hover);
       }
     }
+  }
+  .modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
   }
 </style>
