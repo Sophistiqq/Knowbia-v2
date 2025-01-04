@@ -67,7 +67,6 @@
     const res = await fetch('http://localhost:3000/page/dashboard')
     const data = await res.json()
     dashboardData = data
-    console.table(dashboardData.topPerformers)
   }
 
   async function fetchAverageOverTime() {
@@ -75,7 +74,6 @@
     const data = await response.json()
     averageOverTime.labels = data.labels
     averageOverTime.datasets[0].data = data.values
-    console.log(averageOverTime)
   }
 
   let assessmentScores: any = {

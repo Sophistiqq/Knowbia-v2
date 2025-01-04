@@ -185,20 +185,17 @@
   }
 
   // Save Assessment
-  async function saveAssessment(time: string): Promise<{ id: number } | null> {
-    // Validation
+  async function saveAssessment(showToast = true): Promise<number | null> {
     if (!assessment.title.trim()) {
-      toast('Please enter an assessment title', '2000', 'error')
+      if (showToast) toast('Please enter an assessment title', '2000', 'error')
       return null
     }
-
     if (assessment.questions.length === 0) {
-      toast('Please add at least one question', '2000', 'error')
+      if (showToast) toast('Please add at least one question', '2000', 'error')
       return null
     }
-
     if (!assessment.section.trim()) {
-      toast('Please enter a section', '2000', 'error')
+      if (showToast) toast('Please enter a section', '2000', 'error')
       return null
     }
 
@@ -212,24 +209,62 @@
       })
 
       if (!response.ok) {
+        const errorDetails = await response.text()
+        console.error('Save assessment server error:', errorDetails)
+        if (showToast) toast('Failed to save assessment', '2000', 'error')
         throw new Error('Server responded with an error')
       }
 
       const data = await response.json()
 
-      if (time !== 'none') {
-        toast(data.message, time, data.status)
-      }
-
       if (!data.id) {
+        console.error('Invalid server response, no ID returned:', data)
+        if (showToast) toast('Failed to save assessment', '2000', 'error')
         throw new Error('No ID returned from server')
       }
 
-      return { id: data.id }
+      if (showToast) toast('Assessment saved successfully!', '2000', 'success')
+      console.log('Assessment saved with ID:', data.id)
+      return data.id
     } catch (err) {
       console.error('Save assessment error:', err)
-      toast('Failed to save assessment', '2000', 'error')
+      if (showToast) toast('Failed to save assessment', '2000', 'error')
       return null
+    }
+  }
+
+  async function distributeAssessment() {
+    try {
+      const savedData = await saveAssessment(false)
+
+      if (!savedData || typeof savedData.id !== 'number') {
+        toast('Failed to save assessment, cannot distribute', '2000', 'error')
+        return
+      }
+
+      const response = await fetch('http://localhost:3000/assessments/distribute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...assessment,
+          id: savedData.id // Extract `id` as a number
+        })
+      })
+
+      if (!response.ok) {
+        const errorDetails = await response.json()
+        console.error('Distribute assessment server error:', errorDetails)
+        throw new Error('Distribution request failed')
+      }
+
+      const data = await response.json()
+      toast(data.message, '2000', data.status || 'info')
+      console.log('Assessment distributed:', data)
+    } catch (error) {
+      console.error('Distribution error:', error)
+      toast('Failed to distribute assessment', '2000', 'error')
     }
   }
 
@@ -252,7 +287,7 @@
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 's') {
       e.preventDefault()
-      saveAssessment('2000')
+      saveAssessment()
     }
     if (e.ctrlKey && e.key === 'p') {
       e.preventDefault()
@@ -264,39 +299,6 @@
   $: if (assessment.questions.length === 0) {
     addQuestion()
   }
-
-  async function distributeAssessment() {
-    try {
-      const savedData = await saveAssessment('none')
-
-      if (!savedData || !savedData.id) {
-        toast('Failed to save assessment, cannot distribute', '2000', 'error')
-        return
-      }
-
-      const response = await fetch('http://localhost:3000/assessments/distribute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...assessment,
-          id: savedData.id
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Distribution request failed')
-      }
-
-      const data = await response.json()
-      toast(data.message, '2000', data.status)
-    } catch (error) {
-      console.error('Distribution error:', error)
-      toast('Failed to distribute assessment', '2000', 'error')
-    }
-  }
-
   // export as JSON
   function exportAsJSON() {
     const data = JSON.stringify(assessment, null, 2)
@@ -420,7 +422,7 @@
         </div>
       </div>
 
-      <button title="Save Assessment" on:click={saveAssessment}>Save</button>
+      <button title="Save Assessment" on:click={() => saveAssessment()}>Save</button>
       <div class="load-dropdown-container">
         <button on:click={() => (showLoadDropdown = !showLoadDropdown)}>Load</button>
         <div class="dropdown-content {LoadDropdownClass}">
