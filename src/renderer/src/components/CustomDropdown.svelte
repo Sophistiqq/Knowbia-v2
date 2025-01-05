@@ -81,7 +81,6 @@
     align-items: center;
     padding: 0.5rem 1rem;
     border: var(--border);
-    border-radius: 0.2rem;
     cursor: pointer;
     width: 100%;
     background-color: var(--background);
@@ -109,7 +108,6 @@
     background-color: var(--background);
     border: var(--border);
     border-top: none;
-    border-radius: 0 0 0.2rem 0.2rem;
     z-index: 10;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }

@@ -60,7 +60,6 @@
   async function fetchStudents() {
     const res = await fetch('http://localhost:3000/page/manage-students')
     students = await res.json()
-    console.table(students)
     filterStudents()
   }
 
@@ -528,7 +527,6 @@
   .modal-content {
     background-color: var(--background);
     padding: 2rem;
-    border-radius: 0.5rem;
     box-shadow: 0 0 1rem 0 rgba(150, 150, 150, 0.1);
     position: relative;
     width: 90%;

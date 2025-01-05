@@ -50,7 +50,6 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-
   createWindow()
 
   app.on('activate', function () {

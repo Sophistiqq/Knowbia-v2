@@ -968,7 +968,6 @@
     background: var(--background);
     border: var(--border);
     padding: 2rem;
-    border-radius: 5px;
     text-align: center;
 
     button {

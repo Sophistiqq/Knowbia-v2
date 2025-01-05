@@ -15,7 +15,6 @@
     if (data.status === 'success') {
       onGoingAssessments = data.onGoingAssessments
       restrictedStudents = data.restrictedStudents
-      console.table(onGoingAssessments)
     } else {
       toast(data.message, 2000, data.status)
     }
@@ -243,6 +242,7 @@
           display: flex;
           flex-direction: column;
           align-items: flex-start;
+          text-align: left;
           gap: 0.25rem;
           border: none;
         }
@@ -251,7 +251,6 @@
         border: none;
         background-color: transparent;
         width: 10rem;
-        border-radius: 0;
         &:hover {
           background-color: var(--hover);
         }

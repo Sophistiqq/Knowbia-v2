@@ -231,7 +231,6 @@
     width: 500px;
     background: var(--background-solid);
     border: var(--border);
-    border-radius: 4px;
     overflow: hidden;
   }
 
@@ -274,7 +273,6 @@
       padding: 0.5rem;
       border: var(--border);
       background: var(--background);
-      border-radius: 4px;
 
       &.error {
         border-color: #ff4444;

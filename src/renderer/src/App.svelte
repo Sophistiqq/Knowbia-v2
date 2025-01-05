@@ -238,7 +238,6 @@
     font-size: 1.5rem;
     font-weight: bold;
     margin-top: 1rem;
-    border-radius: 0.2rem;
     transition: background-color 0.3s;
     &:hover {
       background-color: var(--background);
@@ -254,7 +253,6 @@
       padding: 0.5rem 1rem;
       font-size: 1.3rem;
       border: var(--border);
-      border-radius: 0.2rem;
       background-color: var(--background);
       text-align: center;
     }

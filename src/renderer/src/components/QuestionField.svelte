@@ -291,7 +291,6 @@
     position: relative;
   }
   .question-container {
-    border-radius: 0.2rem;
     padding: 1rem;
     width: 100%;
     background: var(--background);
@@ -310,7 +309,6 @@
     button {
       background: var(--background);
       border: var(--border);
-      border-radius: 0.2rem;
       outline: none;
       cursor: pointer;
       padding: 0.5rem;
@@ -326,13 +324,11 @@
     background: var(--background);
     border: var(--border);
     outline: none;
-    border-radius: 0.2rem;
   }
   .selected-option {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-radius: 0.2rem;
     padding: 0.5rem;
   }
   .options-list {
@@ -344,7 +340,6 @@
     background: var(--background-solid);
     border: var(--border);
     border-top: none;
-    border-radius: 0 0 0.2rem 0.2rem;
     overflow-y: auto;
   }
   .option {
@@ -374,7 +369,6 @@
   input {
     border: var(--border);
     outline: none;
-    border-radius: 0.2rem;
     padding: 0.75rem;
     width: 100%;
     background: var(--background);
@@ -398,7 +392,6 @@
     padding: 0.3rem;
     display: grid;
     place-items: center;
-    border-radius: 0.2rem;
     &:hover {
       background: var(--hover);
     }
@@ -424,7 +417,6 @@
   .add-option-btn {
     background: var(--background);
     border: var(--border);
-    border-radius: 0.2rem;
     padding: 0.5rem;
     cursor: pointer;
     width: 100%;
