@@ -116,7 +116,7 @@
     questions_and_answers = data.questions_and_answers.map((qa: any) => ({
       ...qa,
       questions: JSON.parse(qa.questions),
-      answers: JSON.parse(qa.answers) // Parse the answers here
+      answers: JSON.parse(qa.answers) // Parse answers as JSON
     }))
     students = data.students
     results = data.results
@@ -131,6 +131,28 @@
 
   function prevent(e: Event) {
     e.preventDefault()
+  }
+  function isAnswerCorrect(question: QuestionType, answer: any): boolean {
+    if (answer === null) return false
+
+    switch (question.type) {
+      case 'multiple_choice':
+        return question.correctAnswers?.includes(answer)
+      case 'short_answer':
+      case 'essay':
+        // Trim and compare case-insensitively
+        return question.correctAnswers?.some(
+          (correctAnswer: string) =>
+            correctAnswer.trim().toLowerCase() === answer?.toString().trim().toLowerCase()
+        )
+      case 'true_false':
+        // Convert both correctAnswers and answer to strings for comparison
+        return (
+          question.correctAnswers?.toString().toLowerCase() === answer?.toString().toLowerCase()
+        )
+      default:
+        return false
+    }
   }
 </script>
 
@@ -242,22 +264,17 @@
                         </p>
                         <p>{q.question}</p>
                         <p>
-                          Answer:
-                          {#if qa.answers[index] == null}
-                            No answer provided
-                          {:else if selectedQuestion.type === 'multiple_choice'}
-                            {selectedQuestion.options[qa.answers[index]]}
-                          {:else if selectedQuestion.type === 'true_false'}
-                            {qa.answers[index] === true ? 'True' : 'False'}
-                          {:else}
-                            {qa.answers[index]}
-                          {/if}
+                          Answer: {qa.answers[index] === null
+                            ? 'No answer provided'
+                            : selectedQuestion.type === 'multiple_choice'
+                              ? selectedQuestion.options[qa.answers[index]]
+                              : qa.answers[index]}
                         </p>
                         <p>
-                          Points:
-                          {selectedQuestion.correctAnswers?.includes(qa.answers[index])
-                            ? selectedQuestion.points
-                            : 0}
+                          Correct: {isAnswerCorrect(q, qa.answers[index]) ? 'Yes' : 'No'}
+                        </p>
+                        <p>
+                          Points: {isAnswerCorrect(q, qa.answers[index]) ? q.points : 0}
                         </p>
                       </div>
                     {/if}
@@ -266,58 +283,57 @@
               {/each}
             </div>
           {/if}
-        {:else if activeTab === 'individuals'}
-          {#if !selectedStudent}
-            <h3>Students</h3>
-            <h4>Select a student to view their responses</h4>
-            {#each students as student}
-              {#if questions_and_answers.some((qa) => qa.student_number === student.student_number && qa.assessment_id === selectedAssessment.id)}
-                <button class="students" on:click={() => (selectedStudent = student)}>
-                  <p>
-                    {student.first_name}
-                    {student.last_name} ({student.student_number})
-                  </p>
-                </button>
-              {/if}
-            {/each}
-          {/if}
-          {#if selectedStudent}
-            <button id="back" on:click={() => (selectedStudent = null)}
-              >&#8636; Back to Students</button
-            >
-            <h3>
-              {selectedStudent.first_name}
-              {selectedStudent.last_name} ({selectedStudent.student_number})
-            </h3>
-            <div class="responses-list">
-              {#each questions_and_answers as qa}
-                {#if qa.student_number === selectedStudent.student_number && qa.assessment_id === selectedAssessment.id}
-                  {#each qa.questions as q, index}
-                    <div class="responses-wrapper">
-                      <p>{q.question}</p>
-                      <p>
-                        Answer: {selectedAssessment.questions.find((qq) => qq.id === q.id)?.type ===
-                        'multiple_choice'
-                          ? selectedAssessment.questions.find((qq) => qq.id === q.id)?.options[
-                              qa.answers[index]
-                            ]
-                          : qa.answers[index]}
-                      </p>
-                      <p>
-                        Points: {selectedAssessment.questions
-                          .find((qq) => qq.id === q.id)
-                          ?.correctAnswers?.includes(qa.answers[index])
-                          ? selectedAssessment.questions.find((qq) => qq.id === q.id)?.points
-                          : 0}
-                      </p>
-                    </div>
-                  {/each}
-                {/if}
-              {/each}
-            </div>
-          {/if}
-        {/if}
+{:else if activeTab === 'individuals'}
+  {#if !selectedStudent}
+    <h3>Students</h3>
+    <h4>Select a student to view their responses</h4>
+    {#each students as student}
+      {#if questions_and_answers.some(qa => qa.student_number === student.student_number && qa.assessment_id === selectedAssessment.id)}
+        <button class="students" on:click={() => (selectedStudent = student)}>
+          <p>
+            {student.first_name} {student.last_name} ({student.student_number})
+          </p>
+        </button>
       {/if}
+    {/each}
+  {/if}
+  {#if selectedStudent}
+    <button id="back" on:click={() => (selectedStudent = null)}
+      >&#8636; Back to Students</button
+    >
+    <h3>
+      {selectedStudent.first_name} {selectedStudent.last_name} ({selectedStudent.student_number})
+    </h3>
+    <div class="responses-list">
+      {#each questions_and_answers as qa}
+        {#if qa.student_number === selectedStudent.student_number && qa.assessment_id === selectedAssessment.id}
+          {#each qa.questions as q, index}
+            <div class="responses-wrapper">
+              <p>{q.question}</p>
+              <p>
+                Answer: {qa.answers[index] === null
+                  ? "No answer provided"
+                  : q.type === 'multiple_choice'
+                  ? q.options[qa.answers[index]]
+                  : qa.answers[index]}
+              </p>
+              <p>
+                Correct: {isAnswerCorrect(q, qa.answers[index]) ? "Yes" : "No"}
+              </p>
+              <p>
+                Points: {isAnswerCorrect(q, qa.answers[index]) ? q.points : 0}
+              </p>
+              <p>
+                Correct Answer: {q.type === 'multiple_choice'
+                  ? q.options[q.correctAnswers[0]]
+                  : q.correctAnswers?.join(', ')}
+              </p>
+            </div>
+          {/each}
+        {/if}
+      {/each}
+    </div>
+  {/if}
     {/if}
   </div>
 </main>
@@ -527,7 +543,7 @@
     transition: background-color 0.2s;
     margin-top: 1rem;
     &:active {
-      background-color: var(--active);
+      background-color: var(--hover);
       transform: scale(0.95);
     }
   }
@@ -541,8 +557,8 @@
       border: none;
       background-color: var(--background);
       color: var(--text);
-      cursor: pointer;
       border: var(--border);
+      cursor: pointer;
       &.active {
         background-color: var(--hover);
       }

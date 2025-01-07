@@ -693,7 +693,6 @@
     </div>
     <div class="preview-container {showPreview}">
       <h3>Preview</h3>
-      <pre>{JSON.stringify(assessment, null, 2)}</pre>
       <AssessmentPreview {assessment} />
     </div>
   </div>
