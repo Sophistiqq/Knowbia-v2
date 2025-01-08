@@ -215,7 +215,7 @@
   async function distributeAssessment() {
     try {
       const id = await saveAssessment(false)
-      assessment.id = id.id === undefined ? assessment.id : id.id
+      assessment.id = id === undefined ? assessment.id : id
       console.log('Assessment ID:', assessment.id)
       if (id === undefined || id === null) {
         toast('Failed to save assessment. Distribution aborted.', '2000', 'error')

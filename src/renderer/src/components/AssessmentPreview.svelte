@@ -118,8 +118,6 @@
   }
 
   textarea,
-  select,
-  option,
   input {
     border: var(--border);
     outline: none;

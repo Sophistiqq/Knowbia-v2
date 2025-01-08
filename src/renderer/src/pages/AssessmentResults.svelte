@@ -129,6 +129,18 @@
   let selectedStudent: Student | null = null
   let activeTab: 'questions' | 'individuals' = 'questions'
 
+  async function deleteStudentResult(student_number: string) {
+    const res = await fetch(`http://localhost:3000/page/assessment-results/${student_number}`, {
+      method: 'DELETE'
+    })
+    if (res.ok) {
+      toast('Student result deleted successfully', 2000, 'success')
+      await fetchAssessments()
+    } else {
+      toast('Failed to delete student result', 2000, 'error')
+    }
+  }
+
   function prevent(e: Event) {
     e.preventDefault()
   }
@@ -223,13 +235,13 @@
                     .replace(/\b\w/g, (l) => l.toUpperCase())}
                 </p>
                 <p>Points: {selectedQuestion.points}</p>
-                <p>Category: {selectedQuestion.category}</p>
                 <p>Required: {selectedQuestion.required ? 'Yes' : 'No'}</p>
                 <p>Selected Question ID: {selectedQuestion.id}</p>
               </div>
             </div>
             <br />
             <h4>Responses</h4>
+            <br />
             <div class="responses-list">
               {#each questions_and_answers as qa}
                 {#if qa.assessment_id === selectedAssessment.id}
@@ -289,27 +301,44 @@
               {selectedStudent.first_name}
               {selectedStudent.last_name} ({selectedStudent.student_number})
             </h3>
+
+            <button
+              on:click={() =>
+                requireSudo(() => deleteStudentResult(selectedStudent.student_number))}
+            >
+              Delete Result
+            </button>
             <div class="responses-list">
               {#each questions_and_answers as qa}
                 {#if qa.student_number === selectedStudent.student_number && qa.assessment_id === selectedAssessment.id}
                   {#each qa.questions as q, index}
                     <div class="responses-wrapper">
-                      <p>{q.question}</p>
-                      <p>
-                        Answer: {selectedAssessment.questions.find((qq) => qq.id === q.id)?.type ===
-                        'multiple_choice'
-                          ? selectedAssessment.questions.find((qq) => qq.id === q.id)?.options[
-                              qa.answers[index]
-                            ]
-                          : qa.answers[index]}
-                      </p>
-                      <p>
-                        Points: {selectedAssessment.questions
-                          .find((qq) => qq.id === q.id)
-                          ?.correctAnswers?.includes(qa.answers[index])
-                          ? selectedAssessment.questions.find((qq) => qq.id === q.id)?.points
-                          : 0}
-                      </p>
+                      <div class="info">
+                        <p>{q.question}</p>
+                        <p>
+                          Answer: {selectedAssessment.questions.find((qq) => qq.id === q.id)
+                            ?.type === 'multiple_choice'
+                            ? selectedAssessment.questions.find((qq) => qq.id === q.id)?.options[
+                                qa.answers[index]
+                              ]
+                            : qa.answers[index]}
+                        </p>
+                        <p>
+                          Points: {selectedAssessment.questions
+                            .find((qq) => qq.id === q.id)
+                            ?.correctAnswers?.includes(qa.answers[index])
+                            ? selectedAssessment.questions.find((qq) => qq.id === q.id)?.points
+                            : 0}
+                        </p>
+                        <p>
+                          Correct: {selectedAssessment.questions
+                            .find((qq) => qq.id === q.id)
+                            ?.correctAnswers?.includes(qa.answers[index])
+                            ? 'Yes'
+                            : 'No'}
+                        </p>
+                      </div>
+                      <div class="actions"></div>
                     </div>
                   {/each}
                 {/if}
